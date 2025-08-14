@@ -32,21 +32,24 @@ export function CreateDoctorModal({
   onDoctorCreated,
 }: CreateDoctorModalProps) {
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     phone: "",
+    address: "",
     specialization: "",
     qualification: "",
     experience: "",
-    licenseNo: "",
+    licenseNumber: "",
     aadhaarNo: "",
     about: "",
+    consultationFee: "",
   });
   const [generatedCredentials, setGeneratedCredentials] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const generateCredentials = () => {
     // Generate email from name
-    const email = formData.name
+    const email = `${formData.firstName}.${formData.lastName}`
       .toLowerCase()
       .replace(/[^a-z\s]/g, "")
       .replace(/\s+/g, ".")
@@ -83,14 +86,17 @@ export function CreateDoctorModal({
     const newDoctor = {
       id: Date.now().toString(),
       userId: `user_${Date.now()}`,
-      name: formData.name,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
       email: credentials.email,
       phone: formData.phone,
+      address: formData.address,
       specialization: formData.specialization,
       qualification: formData.qualification,
       experience: Number.parseInt(formData.experience),
-      licenseNo: formData.licenseNo,
+      licenseNumber: formData.licenseNumber,
       aadhaarNo: formData.aadhaarNo,
+      consultationFee: Number.parseFloat(formData.consultationFee),
       about: formData.about,
       isVerified: false,
       verificationDate: null,
@@ -118,14 +124,17 @@ export function CreateDoctorModal({
 
   const resetForm = () => {
     setFormData({
-      name: "",
+      firstName: "",
+      lastName: "",
       phone: "",
+      address: "",
       specialization: "",
       qualification: "",
       experience: "",
-      licenseNo: "",
+      licenseNumber: "",
       aadhaarNo: "",
       about: "",
+      consultationFee: "",
     });
     setGeneratedCredentials(null);
   };
@@ -211,7 +220,8 @@ export function CreateDoctorModal({
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="font-medium">Name:</span> {formData.name}
+                    <span className="font-medium">Name:</span> Dr.{" "}
+                    {formData.firstName} {formData.lastName}
                   </div>
                   <div>
                     <span className="font-medium">Specialization:</span>{" "}
@@ -219,7 +229,7 @@ export function CreateDoctorModal({
                   </div>
                   <div>
                     <span className="font-medium">License No:</span>{" "}
-                    {formData.licenseNo}
+                    {formData.licenseNumber}
                   </div>
                   <div>
                     <span className="font-medium">Experience:</span>{" "}
@@ -274,14 +284,26 @@ export function CreateDoctorModal({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
+                    id="firstName"
+                    value={formData.firstName}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                      setFormData({ ...formData, firstName: e.target.value })
                     }
-                    placeholder="Dr. John Smith"
+                    placeholder="John"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
+                    placeholder="Smith"
                     required
                   />
                 </div>
@@ -294,6 +316,18 @@ export function CreateDoctorModal({
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     placeholder="+1234567890"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
+                    placeholder="123 Medical Street, City"
                     required
                   />
                 </div>
@@ -322,6 +356,22 @@ export function CreateDoctorModal({
                       setFormData({ ...formData, experience: e.target.value })
                     }
                     placeholder="10"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="consultationFee">Consultation Fee (₹)</Label>
+                  <Input
+                    id="consultationFee"
+                    type="number"
+                    value={formData.consultationFee}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        consultationFee: e.target.value,
+                      })
+                    }
+                    placeholder="500"
                     required
                   />
                 </div>
@@ -359,12 +409,15 @@ export function CreateDoctorModal({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="licenseNo">Medical License Number</Label>
+                  <Label htmlFor="licenseNumber">Medical License Number</Label>
                   <Input
-                    id="licenseNo"
-                    value={formData.licenseNo}
+                    id="licenseNumber"
+                    value={formData.licenseNumber}
                     onChange={(e) =>
-                      setFormData({ ...formData, licenseNo: e.target.value })
+                      setFormData({
+                        ...formData,
+                        licenseNumber: e.target.value,
+                      })
                     }
                     placeholder="DOC123456"
                     required

@@ -1,33 +1,37 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import { verifyToken } from "@/lib/auth"
-import bcrypt from "bcryptjs"
+import { type NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { verifyToken } from "@/lib/auth";
+import bcrypt from "bcryptjs";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyToken(request)
+    const user = await verifyToken(request);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url)
-    const search = searchParams.get("search")
-    const specialization = searchParams.get("specialization")
-    const verified = searchParams.get("verified")
-    const page = Number.parseInt(searchParams.get("page") || "1")
-    const limit = Number.parseInt(searchParams.get("limit") || "10")
-    const skip = (page - 1) * limit
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search");
+    const specialization = searchParams.get("specialization");
+    const verified = searchParams.get("verified");
+    const page = Number.parseInt(searchParams.get("page") || "1");
+    const limit = Number.parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
 
-    const where: any = {}
+    const where: any = {};
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: "insensitive" } },
         { lastName: { contains: search, mode: "insensitive" } },
         { specialization: { contains: search, mode: "insensitive" } },
-      ]
+        { licenseNumber: { contains: search, mode: "insensitive" } },
+      ];
     }
     if (specialization && specialization !== "all") {
-      where.specialization = specialization
+      where.specialization = specialization;
+    }
+    if (verified && verified !== "all") {
+      where.isVerified = verified === "true";
     }
 
     const [doctors, total] = await Promise.all([
@@ -46,7 +50,7 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
       }),
       prisma.doctor.count({ where }),
-    ])
+    ]);
 
     return NextResponse.json({
       doctors,
@@ -56,26 +60,29 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
-    })
+    });
   } catch (error) {
-    console.error("Error fetching doctors:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error fetching doctors:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await verifyToken(request)
+    const user = await verifyToken(request);
     if (!user || user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json()
-    const { email, ...doctorData } = body
+    const body = await request.json();
+    const { email, ...doctorData } = body;
 
     // Generate random password
-    const password = Math.random().toString(36).slice(-8)
-    const hashedPassword = await bcrypt.hash(password, 12)
+    const password = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user and doctor profile
     const newDoctor = await prisma.user.create({
@@ -85,15 +92,16 @@ export async function POST(request: NextRequest) {
         role: "DOCTOR",
         doctor: {
           create: {
-            firstName: doctorData.firstName,
-            lastName: doctorData.lastName,
+            name: `${doctorData.firstName} ${doctorData.lastName}`,
             phone: doctorData.phone,
             specialization: doctorData.specialization,
             qualification: doctorData.qualification,
+            address: doctorData.address || "",
             experience: doctorData.experience,
-            licenseNumber: doctorData.licenseNumber,
+            licenseNo: doctorData.licenseNumber || doctorData.licenseNo,
+            aadhaarNo: doctorData.aadhaarNo,
             consultationFee: doctorData.consultationFee,
-            bio: doctorData.bio,
+            about: doctorData.about || doctorData.bio,
             documents: doctorData.documents || {},
           },
         },
@@ -101,17 +109,20 @@ export async function POST(request: NextRequest) {
       include: {
         doctor: true,
       },
-    })
+    });
 
     return NextResponse.json(
       {
         doctor: newDoctor,
         credentials: { email, password },
       },
-      { status: 201 },
-    )
+      { status: 201 }
+    );
   } catch (error) {
-    console.error("Error creating doctor:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error creating doctor:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

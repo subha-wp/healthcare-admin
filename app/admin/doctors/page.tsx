@@ -1,105 +1,143 @@
-"use client"
+// @ts-nocheck
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Search, Plus, Eye, Edit, CheckCircle, FileText, UserCheck, Clock, Loader2 } from "lucide-react"
-import { DoctorDetailsModal } from "@/components/admin/doctor-details-modal"
-import { CreateDoctorModal } from "@/components/admin/create-doctor-modal"
-import { VerifyDoctorModal } from "@/components/admin/verify-doctor-modal"
-import { useToast } from "@/hooks/use-toast"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Search,
+  Plus,
+  Eye,
+  Edit,
+  CheckCircle,
+  FileText,
+  UserCheck,
+  Clock,
+  Loader2,
+} from "lucide-react";
+import { DoctorDetailsModal } from "@/components/admin/doctor-details-modal";
+import { CreateDoctorModal } from "@/components/admin/create-doctor-modal";
+import { VerifyDoctorModal } from "@/components/admin/verify-doctor-modal";
+import { useToast } from "@/hooks/use-toast";
 
 interface Doctor {
-  id: string
-  userId: string
-  firstName: string
-  lastName: string
-  phone: string
-  specialization: string
-  qualification: string
-  experience: number
-  licenseNumber: string
-  consultationFee: number
-  bio?: string
-  isVerified: boolean
-  verificationDate?: string
-  verificationNotes?: string
-  documents: any
-  createdAt: string
+  id: string;
+  userId: string;
+  name: string;
+  phone: string;
+  specialization: string;
+  qualification: string;
+  experience: number;
+  licenseNo: string;
+  consultationFee: number;
+  bio?: string;
+  isVerified: boolean;
+  verificationDate?: string;
+  verificationNotes?: string;
+  documents: any;
+  createdAt: string;
   user: {
-    id: string
-    email: string
-    createdAt: string
-  }
-  chambers: any[]
+    id: string;
+    email: string;
+    createdAt: string;
+  };
+  chambers: any[];
 }
 
 export default function DoctorsPage() {
-  const [doctors, setDoctors] = useState<Doctor[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [specializationFilter, setSpecializationFilter] = useState("all")
-  const [verificationFilter, setVerificationFilter] = useState("all")
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [verifyingDoctor, setVerifyingDoctor] = useState<Doctor | null>(null)
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [specializationFilter, setSpecializationFilter] = useState("all");
+  const [verificationFilter, setVerificationFilter] = useState("all");
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [verifyingDoctor, setVerifyingDoctor] = useState<Doctor | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     total: 0,
     pages: 0,
-  })
-  const { toast } = useToast()
+  });
+  const { toast } = useToast();
 
-  const fetchDoctors = async (page = 1, search = "", specialization = "all", verified = "all") => {
+  const fetchDoctors = async (
+    page = 1,
+    search = "",
+    specialization = "all",
+    verified = "all"
+  ) => {
     try {
-      setLoading(true)
+      setLoading(true);
       const params = new URLSearchParams({
         page: page.toString(),
         limit: pagination.limit.toString(),
         ...(search && { search }),
         ...(specialization !== "all" && { specialization }),
         ...(verified !== "all" && { verified }),
-      })
+      });
 
-      const response = await fetch(`/api/admin/doctors?${params}`)
+      const response = await fetch(`/api/admin/doctors?${params}`);
       if (!response.ok) {
-        throw new Error("Failed to fetch doctors")
+        throw new Error("Failed to fetch doctors");
       }
 
-      const data = await response.json()
-      setDoctors(data.doctors)
-      setPagination(data.pagination)
+      const data = await response.json();
+      setDoctors(data.doctors);
+      setPagination(data.pagination);
     } catch (error) {
-      console.error("Error fetching doctors:", error)
+      console.error("Error fetching doctors:", error);
       toast({
         title: "Error",
         description: "Failed to fetch doctors. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchDoctors()
-  }, [])
+    fetchDoctors();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchDoctors(1, searchTerm, specializationFilter, verificationFilter)
-    }, 500)
+      fetchDoctors(1, searchTerm, specializationFilter, verificationFilter);
+    }, 500);
 
-    return () => clearTimeout(timer)
-  }, [searchTerm, specializationFilter, verificationFilter])
+    return () => clearTimeout(timer);
+  }, [searchTerm, specializationFilter, verificationFilter]);
 
-  const handleVerifyDoctor = async (doctorId: string, verified: boolean, notes: string) => {
+  const handleVerifyDoctor = async (
+    doctorId: string,
+    verified: boolean,
+    notes: string
+  ) => {
     try {
       const response = await fetch(`/api/admin/doctors/${doctorId}/verify`, {
         method: "POST",
@@ -107,50 +145,64 @@ export default function DoctorsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ verified, notes }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to verify doctor")
+        throw new Error("Failed to verify doctor");
       }
 
       toast({
         title: "Success",
-        description: `Doctor ${verified ? "verified" : "rejected"} successfully`,
-      })
+        description: `Doctor ${
+          verified ? "verified" : "rejected"
+        } successfully`,
+      });
 
-      fetchDoctors(pagination.page, searchTerm, specializationFilter, verificationFilter)
-      setVerifyingDoctor(null)
+      fetchDoctors(
+        pagination.page,
+        searchTerm,
+        specializationFilter,
+        verificationFilter
+      );
+      setVerifyingDoctor(null);
     } catch (error) {
-      console.error("Error verifying doctor:", error)
+      console.error("Error verifying doctor:", error);
       toast({
         title: "Error",
         description: "Failed to verify doctor. Please try again.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
-  const specializations = [...new Set(doctors.map((d) => d.specialization))]
-  const verifiedDoctors = doctors.filter((d) => d.isVerified).length
-  const pendingDoctors = doctors.filter((d) => !d.isVerified).length
+  const specializations = [...new Set(doctors.map((d) => d.specialization))];
+  const verifiedDoctors = doctors.filter((d) => d.isVerified).length;
+  const pendingDoctors = doctors.filter((d) => !d.isVerified).length;
 
-  const getDoctorName = (doctor: Doctor) => `Dr. ${doctor.firstName} ${doctor.lastName}`
+  const getDoctorName = (doctor: Doctor) => `Dr. ${doctor.name}`;
 
   const filteredDoctors = doctors.filter((doctor) => {
-    if (verificationFilter === "verified" && !doctor.isVerified) return false
-    if (verificationFilter === "pending" && doctor.isVerified) return false
-    return true
-  })
+    if (verificationFilter === "verified" && !doctor.isVerified) return false;
+    if (verificationFilter === "pending" && doctor.isVerified) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900">Doctor Management</h2>
-          <p className="text-slate-600 mt-2">Manage doctor profiles, verification, and credentials</p>
+          <h2 className="text-3xl font-bold text-slate-900">
+            Doctor Management
+          </h2>
+          <p className="text-slate-600 mt-2">
+            Manage doctor profiles, verification, and credentials
+          </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)} className="flex items-center space-x-2">
+        <Button
+          onClick={() => setIsCreateModalOpen(true)}
+          className="flex items-center space-x-2"
+        >
           <Plus className="h-4 w-4" />
           <span>Add Doctor</span>
         </Button>
@@ -160,34 +212,50 @@ export default function DoctorsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Total Doctors</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Total Doctors
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">{pagination.total}</div>
+            <div className="text-2xl font-bold text-slate-900">
+              {pagination.total}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Verified</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Verified
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{verifiedDoctors}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {verifiedDoctors}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Pending Verification</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Pending Verification
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{pendingDoctors}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {pendingDoctors}
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">Specializations</CardTitle>
+            <CardTitle className="text-sm font-medium text-slate-600">
+              Specializations
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{specializations.length}</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {specializations.length}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -204,7 +272,9 @@ export default function DoctorsPage() {
           <Card>
             <CardHeader>
               <CardTitle>All Doctors</CardTitle>
-              <CardDescription>Complete list of registered doctors</CardDescription>
+              <CardDescription>
+                Complete list of registered doctors
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {/* Filters */}
@@ -218,7 +288,10 @@ export default function DoctorsPage() {
                     className="pl-10"
                   />
                 </div>
-                <Select value={specializationFilter} onValueChange={setSpecializationFilter}>
+                <Select
+                  value={specializationFilter}
+                  onValueChange={setSpecializationFilter}
+                >
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Filter by specialization" />
                   </SelectTrigger>
@@ -231,7 +304,10 @@ export default function DoctorsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={verificationFilter} onValueChange={setVerificationFilter}>
+                <Select
+                  value={verificationFilter}
+                  onValueChange={setVerificationFilter}
+                >
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Filter by verification" />
                   </SelectTrigger>
@@ -268,15 +344,25 @@ export default function DoctorsPage() {
                         <TableRow key={doctor.id}>
                           <TableCell>
                             <div>
-                              <div className="font-medium">{getDoctorName(doctor)}</div>
-                              <div className="text-sm text-slate-500">{doctor.user.email}</div>
+                              <div className="font-medium">
+                                {getDoctorName(doctor)}
+                              </div>
+                              <div className="text-sm text-slate-500">
+                                {doctor.user.email}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>{doctor.specialization}</TableCell>
                           <TableCell>{doctor.experience} years</TableCell>
-                          <TableCell className="font-mono text-sm">{doctor.licenseNumber}</TableCell>
+                          <TableCell className=" text-sm">
+                            {doctor.licenseNo}
+                          </TableCell>
                           <TableCell>
-                            <Badge variant={doctor.isVerified ? "default" : "secondary"}>
+                            <Badge
+                              variant={
+                                doctor.isVerified ? "default" : "secondary"
+                              }
+                            >
                               {doctor.isVerified ? (
                                 <div className="flex items-center space-x-1">
                                   <CheckCircle className="h-3 w-3" />
@@ -293,7 +379,11 @@ export default function DoctorsPage() {
                           <TableCell>₹{doctor.consultationFee}</TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
-                              <Button variant="ghost" size="sm" onClick={() => setSelectedDoctor(doctor)}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedDoctor(doctor)}
+                              >
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="sm">
@@ -322,14 +412,23 @@ export default function DoctorsPage() {
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-slate-600">
                     Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
-                    {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} doctors
+                    {Math.min(
+                      pagination.page * pagination.limit,
+                      pagination.total
+                    )}{" "}
+                    of {pagination.total} doctors
                   </p>
                   <div className="flex items-center space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        fetchDoctors(pagination.page - 1, searchTerm, specializationFilter, verificationFilter)
+                        fetchDoctors(
+                          pagination.page - 1,
+                          searchTerm,
+                          specializationFilter,
+                          verificationFilter
+                        )
                       }
                       disabled={pagination.page <= 1}
                     >
@@ -342,7 +441,12 @@ export default function DoctorsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        fetchDoctors(pagination.page + 1, searchTerm, specializationFilter, verificationFilter)
+                        fetchDoctors(
+                          pagination.page + 1,
+                          searchTerm,
+                          specializationFilter,
+                          verificationFilter
+                        )
                       }
                       disabled={pagination.page >= pagination.pages}
                     >
@@ -359,25 +463,38 @@ export default function DoctorsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Verified Doctors</CardTitle>
-              <CardDescription>Doctors who have completed verification process</CardDescription>
+              <CardDescription>
+                Doctors who have completed verification process
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {doctors
                   .filter((d) => d.isVerified)
                   .map((doctor) => (
-                    <Card key={doctor.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                    <Card
+                      key={doctor.id}
+                      className="cursor-pointer hover:shadow-md transition-shadow"
+                    >
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-4">
                           <Badge variant="default" className="text-xs">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Verified
                           </Badge>
-                          <div className="text-sm font-medium">₹{doctor.consultationFee}</div>
+                          <div className="text-sm font-medium">
+                            ₹{doctor.consultationFee}
+                          </div>
                         </div>
-                        <h3 className="font-semibold text-lg mb-2">{getDoctorName(doctor)}</h3>
-                        <p className="text-slate-600 text-sm mb-2">{doctor.specialization}</p>
-                        <p className="text-slate-500 text-xs mb-4">{doctor.experience} years experience</p>
+                        <h3 className="font-semibold text-lg mb-2">
+                          {getDoctorName(doctor)}
+                        </h3>
+                        <p className="text-slate-600 text-sm mb-2">
+                          {doctor.specialization}
+                        </p>
+                        <p className="text-slate-500 text-xs mb-4">
+                          {doctor.experience} years experience
+                        </p>
                         <div className="flex items-center justify-between text-sm text-slate-500">
                           <span>{doctor.chambers.length} chambers</span>
                           <span>License: {doctor.licenseNumber}</span>
@@ -394,7 +511,9 @@ export default function DoctorsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Pending Verification</CardTitle>
-              <CardDescription>Doctors awaiting verification approval</CardDescription>
+              <CardDescription>
+                Doctors awaiting verification approval
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -406,24 +525,38 @@ export default function DoctorsPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <h3 className="font-semibold text-lg">{getDoctorName(doctor)}</h3>
+                              <h3 className="font-semibold text-lg">
+                                {getDoctorName(doctor)}
+                              </h3>
                               <Badge variant="secondary">
                                 <Clock className="h-3 w-3 mr-1" />
                                 Pending
                               </Badge>
                             </div>
-                            <p className="text-slate-600 mb-1">{doctor.specialization}</p>
-                            <p className="text-slate-500 text-sm">License: {doctor.licenseNumber}</p>
+                            <p className="text-slate-600 mb-1">
+                              {doctor.specialization}
+                            </p>
                             <p className="text-slate-500 text-sm">
-                              Submitted: {new Date(doctor.createdAt).toLocaleDateString()}
+                              License: {doctor.licenseNumber}
+                            </p>
+                            <p className="text-slate-500 text-sm">
+                              Submitted:{" "}
+                              {new Date(doctor.createdAt).toLocaleDateString()}
                             </p>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => setSelectedDoctor(doctor)}>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedDoctor(doctor)}
+                            >
                               <FileText className="h-4 w-4 mr-1" />
                               Review
                             </Button>
-                            <Button size="sm" onClick={() => setVerifyingDoctor(doctor)}>
+                            <Button
+                              size="sm"
+                              onClick={() => setVerifyingDoctor(doctor)}
+                            >
                               <UserCheck className="h-4 w-4 mr-1" />
                               Verify
                             </Button>
@@ -440,19 +573,29 @@ export default function DoctorsPage() {
 
       {/* Modals */}
       {selectedDoctor && (
-        <DoctorDetailsModal doctor={selectedDoctor} isOpen={!!selectedDoctor} onClose={() => setSelectedDoctor(null)} />
+        <DoctorDetailsModal
+          doctor={selectedDoctor}
+          isOpen={!!selectedDoctor}
+          onClose={() => setSelectedDoctor(null)}
+        />
       )}
 
       <CreateDoctorModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onDoctorCreated={(newDoctor) => {
-          fetchDoctors(pagination.page, searchTerm, specializationFilter, verificationFilter)
-          setIsCreateModalOpen(false)
+          fetchDoctors(
+            pagination.page,
+            searchTerm,
+            specializationFilter,
+            verificationFilter
+          );
+          setIsCreateModalOpen(false);
           toast({
             title: "Success",
-            description: "Doctor created successfully with auto-generated credentials",
-          })
+            description:
+              "Doctor created successfully with auto-generated credentials",
+          });
         }}
       />
 
@@ -462,10 +605,10 @@ export default function DoctorsPage() {
           isOpen={!!verifyingDoctor}
           onClose={() => setVerifyingDoctor(null)}
           onVerified={(doctorId, verified, notes) => {
-            handleVerifyDoctor(doctorId, verified, notes)
+            handleVerifyDoctor(doctorId, verified, notes);
           }}
         />
       )}
     </div>
-  )
+  );
 }

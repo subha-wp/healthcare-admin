@@ -37,7 +37,7 @@ model Admin {
   name        String
   phone       String?
   department  String?
-  permissions Json?     // Store specific permissions as JSON
+  permissions Json? // Store specific permissions as JSON
   lastLogin   DateTime?
   user        User      @relation(fields: [userId], references: [id])
 }
@@ -97,24 +97,28 @@ model Patient {
 }
 
 model Doctor {
-  id             String  @id @default(cuid())
-  userId         String  @unique
-  name           String
-  phone          String
-  specialization String
-  qualification  String
-  address        String
-  experience     Int
-  about          String?
-  licenseNo      String  @unique
-  aadhaarNo      String  @unique
-  documents      Json // Stores document URLs for license and aadhaar
-  user           User    @relation(fields: [userId], references: [id])
-  avatarUrl      String?
-
-  chambers       Chamber[]
-  appointments   Appointment[]
-  medicalRecords MedicalRecord[]
+  id                String          @id @default(cuid())
+  userId            String          @unique
+  name              String
+  phone             String
+  specialization    String
+  qualification     String
+  address           String
+  experience        Int
+  about             String?
+  licenseNo         String          @unique
+  aadhaarNo         String          @unique
+  documents         Json // Stores document URLs for license and aadhaar
+  user              User            @relation(fields: [userId], references: [id])
+  consultationFee   Float           @default(500)
+  isVerified        Boolean         @default(false)
+  verificationDate  DateTime?
+  verificationNotes String?
+  avatarUrl         String?
+  createdAt         DateTime        @default(now())
+  chambers          Chamber[]
+  appointments      Appointment[]
+  medicalRecords    MedicalRecord[]
 }
 
 model Pharmacy {
