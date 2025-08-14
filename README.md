@@ -64,15 +64,6 @@ npx prisma db seed
 npm run dev
 \`\`\`
 
-Visit `http://localhost:3000/login` to access the admin dashboard.
-
-## Default Admin Credentials
-
-After running the seed script:
-
-- **Admin**: admin@healthcare.com / admin123
-- **Office Manager**: office@healthcare.com / office123
-
 ## Tech Stack
 
 - **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
