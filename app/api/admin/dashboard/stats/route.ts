@@ -1,12 +1,12 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import { verifyToken } from "@/lib/auth"
+import { type NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { verifyToken } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await verifyToken(request)
+    const user = await verifyToken(request);
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const [
@@ -44,10 +44,10 @@ export async function GET(request: NextRequest) {
           paymentStatus: "PAID",
         },
         _sum: {
-          totalAmount: true,
+          amount: true,
         },
       }),
-    ])
+    ]);
 
     return NextResponse.json({
       stats: {
@@ -56,12 +56,15 @@ export async function GET(request: NextRequest) {
         totalPharmacies,
         totalChambers,
         totalAppointments,
-        monthlyRevenue: monthlyRevenue._sum.totalAmount || 0,
+        monthlyRevenue: monthlyRevenue._sum.amount || 0,
       },
       recentAppointments,
-    })
+    });
   } catch (error) {
-    console.error("Error fetching dashboard stats:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error fetching dashboard stats:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
