@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
             experience,
             licenseNo: licenseNumber,
             aadhaarNo,
-            consultationFee: consultationFee || 500,
+            consultationFee: consultationFee,
             about: about || "",
             documents: documents || {},
             isVerified: false,
