@@ -22,114 +22,59 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import {
   Building2,
   User,
   Calendar,
   DollarSign,
   Users,
-  Info,
-  CheckCircle,
-  Clock,
+  Save,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface CreateChamberModalProps {
+interface EditChamberModalProps {
+  chamber: any;
   isOpen: boolean;
   onClose: () => void;
-  onChamberCreated: (chamber: any) => void;
+  onChamberUpdated: (chamber: any) => void;
 }
 
-interface Doctor {
-  id: string;
-  name: string;
-  specialization: string;
-  consultationFee: number;
-  user: { email: string };
-}
-
-interface Pharmacy {
-  id: string;
-  name: string;
-  businessName: string;
-  address: string;
-  user: { email: string };
-}
-
-export function CreateChamberModal({
+export function EditChamberModal({
+  chamber,
   isOpen,
   onClose,
-  onChamberCreated,
-}: CreateChamberModalProps) {
+  onChamberUpdated,
+}: EditChamberModalProps) {
   const [formData, setFormData] = useState({
-    doctorId: "",
-    pharmacyId: "",
     weekNumber: "",
     weekDay: "",
     startTime: "",
     endTime: "",
     fees: "",
-    slotDuration: "30",
+    slotDuration: "",
+    isActive: true,
   });
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
-  const [loadingDoctors, setLoadingDoctors] = useState(true);
-  const [loadingPharmacies, setLoadingPharmacies] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
-  const selectedDoctor = doctors.find((d) => d.id === formData.doctorId);
-  const selectedPharmacy = pharmacies.find((p) => p.id === formData.pharmacyId);
-
-  // Fetch verified doctors and pharmacies
+  // Initialize form data when chamber changes
   useEffect(() => {
-    if (isOpen) {
-      fetchVerifiedDoctors();
-      fetchVerifiedPharmacies();
-    }
-  }, [isOpen]);
-
-  const fetchVerifiedDoctors = async () => {
-    try {
-      setLoadingDoctors(true);
-      const response = await fetch("/api/admin/doctors/verified");
-      if (response.ok) {
-        const data = await response.json();
-        setDoctors(data.doctors);
-      }
-    } catch (error) {
-      console.error("Error fetching doctors:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load doctors",
-        variant: "destructive",
+    if (chamber) {
+      setFormData({
+        weekNumber: chamber.weekNumber || "",
+        weekDay: chamber.weekDay || "",
+        startTime: chamber.startTime || "",
+        endTime: chamber.endTime || "",
+        fees: chamber.fees?.toString() || "",
+        slotDuration: chamber.slotDuration?.toString() || "",
+        isActive: chamber.isActive ?? true,
       });
-    } finally {
-      setLoadingDoctors(false);
     }
-  };
-
-  const fetchVerifiedPharmacies = async () => {
-    try {
-      setLoadingPharmacies(true);
-      const response = await fetch("/api/admin/pharmacies/verified");
-      if (response.ok) {
-        const data = await response.json();
-        setPharmacies(data.pharmacies);
-      }
-    } catch (error) {
-      console.error("Error fetching pharmacies:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load pharmacies",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingPharmacies(false);
-    }
-  };
+  }, [chamber]);
 
   const calculateMaxSlots = () => {
     if (formData.startTime && formData.endTime && formData.slotDuration) {
@@ -148,14 +93,14 @@ export function CreateChamberModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.doctorId) newErrors.doctorId = "Please select a doctor";
-    if (!formData.pharmacyId) newErrors.pharmacyId = "Please select a pharmacy";
     if (!formData.weekNumber)
       newErrors.weekNumber = "Please select week number";
     if (!formData.weekDay) newErrors.weekDay = "Please select week day";
     if (!formData.startTime) newErrors.startTime = "Start time is required";
     if (!formData.endTime) newErrors.endTime = "End time is required";
     if (!formData.fees) newErrors.fees = "Consultation fees are required";
+    if (!formData.slotDuration)
+      newErrors.slotDuration = "Slot duration is required";
 
     // Validate time range
     if (formData.startTime && formData.endTime) {
@@ -196,39 +141,37 @@ export function CreateChamberModal({
     setErrors({});
 
     try {
-      const chamberData = {
-        doctorId: formData.doctorId,
-        pharmacyId: formData.pharmacyId,
+      const updateData = {
         weekNumber: formData.weekNumber,
         weekDay: formData.weekDay,
         startTime: formData.startTime,
         endTime: formData.endTime,
         slotDuration: Number.parseInt(formData.slotDuration),
         fees: Number.parseFloat(formData.fees),
+        isActive: formData.isActive,
       };
 
-      const response = await fetch("/api/admin/chambers", {
-        method: "POST",
+      const response = await fetch(`/api/admin/chambers/${chamber.id}`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(chamberData),
+        body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create chamber");
+        throw new Error(errorData.error || "Failed to update chamber");
       }
 
       const result = await response.json();
-      onChamberCreated(result.chamber);
-      resetForm();
+      onChamberUpdated(result.chamber);
     } catch (error) {
-      console.error("Error creating chamber:", error);
+      console.error("Error updating chamber:", error);
       toast({
         title: "Error",
         description:
-          error instanceof Error ? error.message : "Failed to create chamber",
+          error instanceof Error ? error.message : "Failed to update chamber",
         variant: "destructive",
       });
     } finally {
@@ -237,16 +180,17 @@ export function CreateChamberModal({
   };
 
   const resetForm = () => {
-    setFormData({
-      doctorId: "",
-      pharmacyId: "",
-      weekNumber: "",
-      weekDay: "",
-      startTime: "",
-      endTime: "",
-      fees: "",
-      slotDuration: "30",
-    });
+    if (chamber) {
+      setFormData({
+        weekNumber: chamber.weekNumber || "",
+        weekDay: chamber.weekDay || "",
+        startTime: chamber.startTime || "",
+        endTime: chamber.endTime || "",
+        fees: chamber.fees?.toString() || "",
+        slotDuration: chamber.slotDuration?.toString() || "",
+        isActive: chamber.isActive ?? true,
+      });
+    }
     setErrors({});
   };
 
@@ -255,167 +199,49 @@ export function CreateChamberModal({
     onClose();
   };
 
-  // Auto-fill fees when doctor is selected
-  useEffect(() => {
-    if (selectedDoctor && !formData.fees) {
-      setFormData((prev) => ({
-        ...prev,
-        fees: selectedDoctor.consultationFee.toString(),
-      }));
-    }
-  }, [selectedDoctor, formData.fees]);
+  if (!chamber) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Chamber</DialogTitle>
+          <DialogTitle className="flex items-center space-x-2">
+            <Building2 className="h-5 w-5" />
+            <span>Edit Chamber</span>
+            <Badge variant={chamber.isVerified ? "default" : "secondary"}>
+              {chamber.isVerified ? "Verified" : "Pending"}
+            </Badge>
+          </DialogTitle>
           <DialogDescription>
-            Set up a new doctor-pharmacy partnership with schedule and pricing
-            details
+            Update chamber schedule, pricing, and status
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Partnership Selection */}
-          <Card>
+          {/* Partnership Info (Read-only) */}
+          <Card className="bg-slate-50">
             <CardHeader>
-              <CardTitle className="text-lg">Partnership Selection</CardTitle>
+              <CardTitle className="text-lg">
+                Partnership Information (Read-only)
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label
-                    htmlFor="doctorId"
-                    className="flex items-center space-x-2"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>Select Doctor *</span>
-                  </Label>
-                  {loadingDoctors ? (
-                    <div className="flex items-center space-x-2 p-2 border rounded">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Loading doctors...</span>
-                    </div>
-                  ) : (
-                    <Select
-                      value={formData.doctorId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, doctorId: value })
-                      }
-                    >
-                      <SelectTrigger
-                        className={errors.doctorId ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Choose a verified doctor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {doctors.map((doctor) => (
-                          <SelectItem key={doctor.id} value={doctor.id}>
-                            <div className="flex items-center justify-between w-full">
-                              <div>
-                                <div className="font-medium">{doctor.name}</div>
-                                <div className="text-sm text-slate-500">
-                                  {doctor.specialization}
-                                </div>
-                              </div>
-                              <Badge variant="default" className="ml-2">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Verified
-                              </Badge>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {errors.doctorId && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.doctorId}
-                    </p>
-                  )}
+                  <h4 className="font-medium mb-1">Doctor</h4>
+                  <p className="text-sm">{chamber.doctor.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {chamber.doctor.specialization}
+                  </p>
                 </div>
                 <div>
-                  <Label
-                    htmlFor="pharmacyId"
-                    className="flex items-center space-x-2"
-                  >
-                    <Building2 className="h-4 w-4" />
-                    <span>Select Pharmacy *</span>
-                  </Label>
-                  {loadingPharmacies ? (
-                    <div className="flex items-center space-x-2 p-2 border rounded">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Loading pharmacies...</span>
-                    </div>
-                  ) : (
-                    <Select
-                      value={formData.pharmacyId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, pharmacyId: value })
-                      }
-                    >
-                      <SelectTrigger
-                        className={errors.pharmacyId ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Choose a verified pharmacy" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pharmacies.map((pharmacy) => (
-                          <SelectItem key={pharmacy.id} value={pharmacy.id}>
-                            <div className=" flex items-center justify-between w-full">
-                              <div>
-                                <div className="font-medium">
-                                  {pharmacy.name}
-                                </div>
-                                <div className="text-sm text-slate-500 truncate max-w-48">
-                                  {pharmacy.address.split(",")[0]}
-                                </div>
-                              </div>
-                              <Badge variant="default" className="ml-2">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Verified
-                              </Badge>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {errors.pharmacyId && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.pharmacyId}
-                    </p>
-                  )}
+                  <h4 className="font-medium mb-1">Pharmacy</h4>
+                  <p className="text-sm">{chamber.pharmacy.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {chamber.pharmacy.address.split(",")[0]}
+                  </p>
                 </div>
               </div>
-
-              {/* Selected Partnership Preview */}
-              {selectedDoctor && selectedPharmacy && (
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <h4 className="font-medium mb-2">Selected Partnership</h4>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="font-medium">Doctor:</span>{" "}
-                        {selectedDoctor.name}
-                        <br />
-                        <span className="text-slate-600">
-                          {selectedDoctor.specialization}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium">Pharmacy:</span>{" "}
-                        {selectedPharmacy.name}
-                        <br />
-                        <span className="text-slate-600">
-                          {selectedPharmacy.address.split(",")[0]}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
             </CardContent>
           </Card>
 
@@ -525,12 +351,12 @@ export function CreateChamberModal({
             </CardContent>
           </Card>
 
-          {/* Pricing & Capacity */}
+          {/* Pricing & Settings */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center space-x-2">
                 <DollarSign className="h-4 w-4" />
-                <span>Pricing & Capacity</span>
+                <span>Pricing & Settings</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -552,11 +378,6 @@ export function CreateChamberModal({
                   />
                   {errors.fees && (
                     <p className="text-sm text-red-500 mt-1">{errors.fees}</p>
-                  )}
-                  {selectedDoctor && (
-                    <p className="text-xs text-slate-500 mt-1">
-                      Doctor's default fee: ₹{selectedDoctor.consultationFee}
-                    </p>
                   )}
                 </div>
                 <div>
@@ -589,44 +410,37 @@ export function CreateChamberModal({
                 </div>
               </div>
 
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isActive"
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, isActive: checked })
+                  }
+                />
+                <Label htmlFor="isActive">Chamber is active</Label>
+              </div>
+
               {/* Capacity Calculation */}
               {calculateMaxSlots() > 0 && (
-                <Card className="bg-green-50 border-green-200">
+                <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
                     <div className="flex items-center space-x-2 mb-2">
-                      <Users className="h-4 w-4 text-green-600" />
-                      <span className="font-medium text-green-800">
-                        Capacity Calculation
+                      <Users className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium text-blue-800">
+                        Updated Capacity
                       </span>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
-                        <span className="text-green-700">Total Duration:</span>
-                        <br />
-                        <span className="font-medium">
-                          {formData.startTime && formData.endTime
-                            ? Math.floor(
-                                (new Date(
-                                  `2000-01-01T${formData.endTime}:00`
-                                ).getTime() -
-                                  new Date(
-                                    `2000-01-01T${formData.startTime}:00`
-                                  ).getTime()) /
-                                  (1000 * 60)
-                              )
-                            : 0}{" "}
-                          minutes
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-green-700">Max Slots:</span>
+                        <span className="text-blue-700">Max Slots:</span>
                         <br />
                         <span className="font-medium">
                           {calculateMaxSlots()} slots
                         </span>
                       </div>
                       <div>
-                        <span className="text-green-700">
+                        <span className="text-blue-700">
                           Potential Revenue:
                         </span>
                         <br />
@@ -638,6 +452,15 @@ export function CreateChamberModal({
                           ).toLocaleString()}
                         </span>
                       </div>
+                      <div>
+                        <span className="text-blue-700">Status:</span>
+                        <br />
+                        <Badge
+                          variant={formData.isActive ? "default" : "secondary"}
+                        >
+                          {formData.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -645,18 +468,20 @@ export function CreateChamberModal({
             </CardContent>
           </Card>
 
-          {/* Information Alert */}
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              The chamber will be created in pending status and require admin
-              verification before becoming active. Both doctor and pharmacy must
-              be verified to create a chamber.
-            </AlertDescription>
-          </Alert>
+          {/* Warning for verified chambers */}
+          {chamber.isVerified && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                This chamber is verified and may have existing appointments.
+                Changes to schedule or pricing may affect future bookings.
+                Consider notifying patients of any changes.
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Actions */}
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
@@ -667,20 +492,18 @@ export function CreateChamberModal({
             </Button>
             <Button
               type="submit"
-              disabled={
-                isSubmitting ||
-                !formData.doctorId ||
-                !formData.pharmacyId ||
-                calculateMaxSlots() <= 0
-              }
+              disabled={isSubmitting || calculateMaxSlots() <= 0}
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating Chamber...
+                  Updating Chamber...
                 </>
               ) : (
-                "Create Chamber"
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Update Chamber
+                </>
               )}
             </Button>
           </div>
