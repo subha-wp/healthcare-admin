@@ -128,7 +128,6 @@ export function CreateDoctorModal({
     setErrors({});
 
     try {
-      // Generate credentials first
       const credentials = generateCredentials();
 
       // Prepare data for API
