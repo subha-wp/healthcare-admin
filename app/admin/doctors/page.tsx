@@ -38,10 +38,12 @@ import {
   UserCheck,
   Clock,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { DoctorDetailsModal } from "@/components/admin/doctor-details-modal";
 import { CreateDoctorModal } from "@/components/admin/create-doctor-modal";
 import { VerifyDoctorModal } from "@/components/admin/verify-doctor-modal";
+import { EditDoctorModal } from "@/components/admin/edit-doctor-modal";
 import { useToast } from "@/hooks/use-toast";
 
 interface Doctor {
@@ -77,6 +79,7 @@ export default function DoctorsPage() {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [verifyingDoctor, setVerifyingDoctor] = useState<Doctor | null>(null);
+  const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -170,6 +173,62 @@ export default function DoctorsPage() {
       toast({
         title: "Error",
         description: "Failed to verify doctor. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditDoctor = (updatedDoctor: any) => {
+    // Refresh the doctors list after update
+    fetchDoctors(
+      pagination.page,
+      searchTerm,
+      specializationFilter,
+      verificationFilter
+    );
+    setEditingDoctor(null);
+    toast({
+      title: "Success",
+      description: "Doctor profile updated successfully",
+    });
+  };
+
+  const handleDeleteDoctor = async (doctorId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this doctor? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/doctors/${doctorId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete doctor");
+      }
+
+      toast({
+        title: "Success",
+        description: "Doctor deleted successfully",
+      });
+
+      fetchDoctors(
+        pagination.page,
+        searchTerm,
+        specializationFilter,
+        verificationFilter
+      );
+    } catch (error) {
+      console.error("Error deleting doctor:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete doctor",
         variant: "destructive",
       });
     }
@@ -398,12 +457,21 @@ export default function DoctorsPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => setEditingDoctor(doctor)}
                                 onClick={() => setSelectedDoctor(doctor)}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="sm">
                                 <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => handleDeleteDoctor(doctor.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                               {!doctor.isVerified && (
                                 <Button
@@ -593,6 +661,10 @@ export default function DoctorsPage() {
           doctor={selectedDoctor}
           isOpen={!!selectedDoctor}
           onClose={() => setSelectedDoctor(null)}
+          onEdit={() => {
+            setEditingDoctor(selectedDoctor);
+            setSelectedDoctor(null);
+          }}
         />
       )}
 
@@ -600,6 +672,13 @@ export default function DoctorsPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onDoctorCreated={handleCreateDoctor}
+      />
+
+      <EditDoctorModal
+        doctor={editingDoctor}
+        isOpen={!!editingDoctor}
+        onClose={() => setEditingDoctor(null)}
+        onDoctorUpdated={handleEditDoctor}
       />
 
       {verifyingDoctor && (

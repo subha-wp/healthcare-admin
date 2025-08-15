@@ -1,42 +1,61 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle, XCircle, FileText, Building2, AlertTriangle, MapPin } from "lucide-react"
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  CheckCircle,
+  XCircle,
+  FileText,
+  Building2,
+  AlertTriangle,
+  MapPin,
+} from "lucide-react";
 
 interface VerifyPharmacyModalProps {
-  pharmacy: any
-  isOpen: boolean
-  onClose: () => void
-  onVerified: (pharmacyId: string) => void
+  pharmacy: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onVerified: (pharmacyId: string, verified: boolean, notes: string) => void;
 }
 
-export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: VerifyPharmacyModalProps) {
-  const [verificationNotes, setVerificationNotes] = useState("")
-  const [isVerifying, setIsVerifying] = useState(false)
+export function VerifyPharmacyModal({
+  pharmacy,
+  isOpen,
+  onClose,
+  onVerified,
+}: VerifyPharmacyModalProps) {
+  const [verificationNotes, setVerificationNotes] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const handleVerify = async () => {
-    setIsVerifying(true)
+    setIsVerifying(true);
+    onVerified(pharmacy.id, true, verificationNotes);
+    setIsVerifying(false);
+  };
 
-    // Simulate verification process
-    setTimeout(() => {
-      onVerified(pharmacy.id)
-      setIsVerifying(false)
-      setVerificationNotes("")
-    }, 1500)
-  }
+  const handleReject = async () => {
+    if (!verificationNotes.trim()) {
+      alert("Please provide rejection notes");
+      return;
+    }
 
-  const handleReject = () => {
-    // Handle rejection logic here
-    console.log("Pharmacy verification rejected:", pharmacy.id, verificationNotes)
-    onClose()
-  }
+    setIsRejecting(true);
+    onVerified(pharmacy.id, false, verificationNotes);
+    setIsRejecting(false);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -46,7 +65,10 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
             <Building2 className="h-5 w-5" />
             <span>Verify Pharmacy: {pharmacy.name}</span>
           </DialogTitle>
-          <DialogDescription>Review pharmacy business credentials and approve or reject verification</DialogDescription>
+          <DialogDescription>
+            Review pharmacy business credentials and approve or reject
+            verification
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -61,7 +83,8 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
                   <span className="font-medium">Name:</span> {pharmacy.name}
                 </div>
                 <div>
-                  <span className="font-medium">Business Name:</span> {pharmacy.businessName}
+                  <span className="font-medium">Business Name:</span>{" "}
+                  {pharmacy.businessName}
                 </div>
                 <div>
                   <span className="font-medium">Email:</span> {pharmacy.email}
@@ -73,7 +96,8 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
                   <span className="font-medium">GSTIN:</span> {pharmacy.gstin}
                 </div>
                 <div>
-                  <span className="font-medium">Trade License:</span> {pharmacy.tradeLicense}
+                  <span className="font-medium">Trade License:</span>{" "}
+                  {pharmacy.tradeLicense}
                 </div>
               </div>
               <div className="mt-4">
@@ -84,10 +108,12 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
                 <p className="text-sm text-slate-600">{pharmacy.address}</p>
                 <div className="grid grid-cols-2 gap-4 mt-2">
                   <div>
-                    <span className="font-medium text-xs">Latitude:</span> {pharmacy.location.lat}
+                    <span className="font-medium text-xs">Latitude:</span>{" "}
+                    {pharmacy.location.lat}
                   </div>
                   <div>
-                    <span className="font-medium text-xs">Longitude:</span> {pharmacy.location.lng}
+                    <span className="font-medium text-xs">Longitude:</span>{" "}
+                    {pharmacy.location.lng}
                   </div>
                 </div>
               </div>
@@ -104,7 +130,9 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <FileText className="h-4 w-4 text-slate-500" />
-                    <span className="text-sm font-medium">Trade License Certificate</span>
+                    <span className="text-sm font-medium">
+                      Trade License Certificate
+                    </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant="outline">PDF</Badge>
@@ -116,7 +144,9 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <FileText className="h-4 w-4 text-slate-500" />
-                    <span className="text-sm font-medium">GSTIN Certificate</span>
+                    <span className="text-sm font-medium">
+                      GSTIN Certificate
+                    </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant="outline">PDF</Badge>
@@ -154,7 +184,9 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
                 </div>
                 <div className="flex items-center space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">Location coordinates validated</span>
+                  <span className="text-sm">
+                    Location coordinates validated
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -183,8 +215,9 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Once verified, the pharmacy will be able to partner with doctors for chambers and accept appointments.
-              Please ensure all business information is accurate before proceeding.
+              Once verified, the pharmacy will be able to partner with doctors
+              for chambers and accept appointments. Please ensure all business
+              information is accurate before proceeding.
             </AlertDescription>
           </Alert>
 
@@ -193,9 +226,20 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={handleReject} className="text-red-600 hover:text-red-700 bg-transparent">
-              <XCircle className="h-4 w-4 mr-2" />
-              Reject
+            <Button
+              variant="outline"
+              onClick={handleReject}
+              disabled={isRejecting}
+              className="text-red-600 hover:text-red-700 bg-transparent"
+            >
+              {isRejecting ? (
+                "Rejecting..."
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
+                </>
+              )}
             </Button>
             <Button onClick={handleVerify} disabled={isVerifying}>
               {isVerifying ? (
@@ -211,5 +255,5 @@ export function VerifyPharmacyModal({ pharmacy, isOpen, onClose, onVerified }: V
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

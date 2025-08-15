@@ -122,8 +122,8 @@ model Doctor {
 }
 
 model Pharmacy {
-  id           String  @id @default(cuid())
-  userId       String  @unique
+  id           String   @id @default(cuid())
+  userId       String   @unique
   name         String
   businessName String
   phone        String
@@ -132,8 +132,9 @@ model Pharmacy {
   gstin        String?
   tradeLicense String?
   documents    Json? // Stores document URLs
-  user         User    @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
   avatarUrl    String?
+  createdAt    DateTime @default(now())
 
   chambers     Chamber[]
   appointments Appointment[]
@@ -154,6 +155,7 @@ model Chamber {
   isVerified        Boolean    @default(false)
   verificationDate  DateTime?
   verificationNotes String?
+  createdAt         DateTime   @default(now())
 
   doctor       Doctor        @relation(fields: [doctorId], references: [id])
   pharmacy     Pharmacy      @relation(fields: [pharmacyId], references: [id])

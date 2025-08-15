@@ -30,12 +30,14 @@ interface DoctorDetailsModalProps {
   doctor: any;
   isOpen: boolean;
   onClose: () => void;
+  onEdit?: () => void;
 }
 
 export function DoctorDetailsModal({
   doctor,
   isOpen,
   onClose,
+  onEdit,
 }: DoctorDetailsModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -228,7 +230,11 @@ export function DoctorDetailsModal({
                 <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button className="w-full bg-transparent" variant="outline">
+                <Button
+                  className="w-full bg-transparent"
+                  variant="outline"
+                  onClick={onEdit}
+                >
                   Edit Profile
                 </Button>
                 <Button className="w-full bg-transparent" variant="outline">
@@ -252,6 +258,7 @@ export function DoctorDetailsModal({
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
+          {onEdit && <Button onClick={onEdit}>Edit Profile</Button>}
         </div>
       </DialogContent>
     </Dialog>

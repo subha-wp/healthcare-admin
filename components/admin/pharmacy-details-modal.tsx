@@ -1,10 +1,16 @@
-"use client"
+"use client";
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   Building2,
   Phone,
@@ -18,15 +24,52 @@ import {
   Users,
   Download,
   Globe,
-} from "lucide-react"
+  Edit,
+  Trash2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface PharmacyDetailsModalProps {
-  pharmacy: any
-  isOpen: boolean
-  onClose: () => void
+  pharmacy: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onEdit?: (pharmacy: any) => void;
+  onDelete?: (pharmacyId: string) => void;
 }
 
-export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDetailsModalProps) {
+export function PharmacyDetailsModal({
+  pharmacy,
+  isOpen,
+  onClose,
+  onEdit,
+  onDelete,
+}: PharmacyDetailsModalProps) {
+  const { toast } = useToast();
+
+  const isVerified = (pharmacy: any) => {
+    return pharmacy.documents?.verificationStatus === true;
+  };
+
+  const getVerificationDate = (pharmacy: any) => {
+    return pharmacy.documents?.verificationDate;
+  };
+
+  const handleEdit = () => {
+    onEdit?.(pharmacy);
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (
+      confirm(
+        "Are you sure you want to delete this pharmacy? This action cannot be undone."
+      )
+    ) {
+      onDelete?.(pharmacy.id);
+      onClose();
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -34,8 +77,8 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
           <DialogTitle className="flex items-center space-x-2">
             <Building2 className="h-5 w-5" />
             <span>{pharmacy.name}</span>
-            <Badge variant={pharmacy.isVerified ? "default" : "secondary"}>
-              {pharmacy.isVerified ? (
+            <Badge variant={isVerified(pharmacy) ? "default" : "secondary"}>
+              {isVerified(pharmacy) ? (
                 <div className="flex items-center space-x-1">
                   <CheckCircle className="h-3 w-3" />
                   <span>Verified</span>
@@ -48,7 +91,9 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
               )}
             </Badge>
           </DialogTitle>
-          <DialogDescription>Complete pharmacy profile and business verification details</DialogDescription>
+          <DialogDescription>
+            Complete pharmacy profile and business verification details
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -63,7 +108,7 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
                     <Mail className="h-4 w-4 text-slate-500" />
-                    <span className="text-sm">{pharmacy.email}</span>
+                    <span className="text-sm">{pharmacy.user.email}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Phone className="h-4 w-4 text-slate-500" />
@@ -82,16 +127,22 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
                   </h4>
                   <p className="text-sm text-slate-600">{pharmacy.address}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-medium mb-1">Latitude</h4>
-                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">{pharmacy.location.lat}</p>
+                {pharmacy.location && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-1">Latitude</h4>
+                      <p className="text-sm font-mono bg-slate-100 p-2 rounded">
+                        {pharmacy.location.lat || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-1">Longitude</h4>
+                      <p className="text-sm font-mono bg-slate-100 p-2 rounded">
+                        {pharmacy.location.lng || "N/A"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium mb-1">Longitude</h4>
-                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">{pharmacy.location.lng}</p>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -104,11 +155,15 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-medium mb-1">GSTIN</h4>
-                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">{pharmacy.gstin}</p>
+                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">
+                      {pharmacy.gstin || "Not provided"}
+                    </p>
                   </div>
                   <div>
                     <h4 className="font-medium mb-1">Trade License</h4>
-                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">{pharmacy.tradeLicense}</p>
+                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">
+                      {pharmacy.tradeLicense || "Not provided"}
+                    </p>
                   </div>
                 </div>
                 <Separator />
@@ -118,7 +173,9 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
                     <div className="flex items-center justify-between p-2 bg-slate-50 rounded">
                       <div className="flex items-center space-x-2">
                         <FileText className="h-4 w-4 text-slate-500" />
-                        <span className="text-sm">Trade License Certificate</span>
+                        <span className="text-sm">
+                          Trade License Certificate
+                        </span>
                       </div>
                       <Button variant="ghost" size="sm">
                         <Download className="h-4 w-4" />
@@ -139,20 +196,36 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
             </Card>
 
             {/* Verification Status */}
-            {pharmacy.isVerified && (
+            {isVerified(pharmacy) && (
               <Card className="border-green-200 bg-green-50">
                 <CardHeader>
-                  <CardTitle className="text-lg text-green-800">Verification Status</CardTitle>
+                  <CardTitle className="text-lg text-green-800">
+                    Verification Status
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center space-x-2 mb-2">
                     <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span className="font-medium text-green-800">Verified Pharmacy</span>
+                    <span className="font-medium text-green-800">
+                      Verified Pharmacy
+                    </span>
                   </div>
                   <p className="text-sm text-green-700">
-                    Verified on {new Date(pharmacy.verificationDate).toLocaleDateString()}
+                    Verified on{" "}
+                    {getVerificationDate(pharmacy)
+                      ? new Date(
+                          getVerificationDate(pharmacy)
+                        ).toLocaleDateString()
+                      : "Unknown"}
                   </p>
-                  <p className="text-sm text-green-600 mt-2">Business registration and documents have been validated</p>
+                  <p className="text-sm text-green-600 mt-2">
+                    Business registration and documents have been validated
+                  </p>
+                  {pharmacy.documents?.verificationNotes && (
+                    <p className="text-sm text-green-600 mt-2">
+                      Notes: {pharmacy.documents.verificationNotes}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -171,28 +244,36 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
                     <Star className="h-4 w-4 text-yellow-500" />
                     <span className="text-sm">Rating</span>
                   </div>
-                  <span className="font-semibold">{pharmacy.rating}/5.0</span>
+                  <span className="font-semibold">4.5/5.0</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Building2 className="h-4 w-4 text-blue-500" />
                     <span className="text-sm">Active Chambers</span>
                   </div>
-                  <span className="font-semibold">{pharmacy.chambers}</span>
+                  <span className="font-semibold">
+                    {pharmacy._count?.chambers ||
+                      pharmacy.chambers?.length ||
+                      0}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Users className="h-4 w-4 text-green-500" />
                     <span className="text-sm">Total Appointments</span>
                   </div>
-                  <span className="font-semibold">{pharmacy.totalAppointments}</span>
+                  <span className="font-semibold">
+                    {pharmacy._count?.appointments || 0}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-purple-500" />
                     <span className="text-sm">Registered</span>
                   </div>
-                  <span className="text-sm">{new Date(pharmacy.createdAt).toLocaleDateString()}</span>
+                  <span className="text-sm">
+                    {new Date(pharmacy.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -207,9 +288,18 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
                   <div className="text-center">
                     <MapPin className="h-8 w-8 text-slate-400 mx-auto mb-2" />
                     <p className="text-xs text-slate-500">Map preview</p>
+                    {pharmacy.location && (
+                      <p className="text-xs text-slate-400 mt-1">
+                        {pharmacy.location.lat}, {pharmacy.location.lng}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <Button variant="outline" className="w-full bg-transparent" size="sm">
+                <Button
+                  variant="outline"
+                  className="w-full bg-transparent"
+                  size="sm"
+                >
                   <Globe className="h-4 w-4 mr-2" />
                   View on Map
                 </Button>
@@ -222,7 +312,12 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
                 <CardTitle className="text-lg">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button className="w-full bg-transparent" variant="outline">
+                <Button
+                  className="w-full bg-transparent"
+                  variant="outline"
+                  onClick={handleEdit}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
                   Edit Profile
                 </Button>
                 <Button className="w-full bg-transparent" variant="outline">
@@ -231,12 +326,20 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
                 <Button className="w-full bg-transparent" variant="outline">
                   View Appointments
                 </Button>
-                {!pharmacy.isVerified && (
+                {!isVerified(pharmacy) && (
                   <Button className="w-full">
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Verify Pharmacy
                   </Button>
                 )}
+                <Button
+                  className="w-full bg-transparent text-red-600 hover:text-red-700"
+                  variant="outline"
+                  onClick={handleDelete}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Pharmacy
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -249,5 +352,5 @@ export function PharmacyDetailsModal({ pharmacy, isOpen, onClose }: PharmacyDeta
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
