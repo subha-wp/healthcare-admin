@@ -92,18 +92,22 @@ export function CreateDoctorModal({
       .replace(/[^a-z\s]/g, "")
       .replace(/\s+/g, ".")
       .replace(/^dr\.?/, "dr.");
-    const domain = "@healthcareapp.com";
+    const domain = "@bookmychamber.com";
     const generatedEmail = `dr.${email}${domain}`;
 
-    // Generate secure password
     const generatePassword = () => {
-      const chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-      let password = "";
-      for (let i = 0; i < 12; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return password;
+      // Get first name (capitalize first letter)
+      const firstName =
+        formData.firstName.charAt(0).toUpperCase() +
+        formData.firstName.slice(1).toLowerCase();
+
+      // Get last 6 digits of Aadhaar number (remove spaces and get last 6)
+      const aadhaarClean = formData.aadhaarNo.replace(/\s/g, "");
+      const last6Digits = aadhaarClean.slice(-6);
+
+      // Create password: FirstName + Last6Digits + @
+      // Example: John123456@ or Priya789012@
+      return `${firstName}${last6Digits}@`;
     };
 
     return {
@@ -590,8 +594,8 @@ export function CreateDoctorModal({
             <Mail className="h-4 w-4" />
             <AlertDescription>
               Login credentials (email and password) will be automatically
-              generated based on the doctor's name. The doctor will receive
-              these credentials to access their account.
+              generated based on the doctor's name and Aadhaar number. The
+              doctor will receive these credentials to access their account.
             </AlertDescription>
           </Alert>
 
