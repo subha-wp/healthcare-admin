@@ -39,7 +39,7 @@ export async function GET(
     const existingAppointments = await prisma.appointment.findMany({
       where: {
         chamberId: id,
-        appointmentDate: {
+        date: {
           gte: new Date(appointmentDate.setHours(0, 0, 0, 0)),
           lt: new Date(appointmentDate.setHours(23, 59, 59, 999)),
         },

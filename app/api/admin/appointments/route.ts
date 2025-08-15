@@ -52,18 +52,18 @@ export async function GET(request: NextRequest) {
             now.getMonth(),
             now.getDate()
           );
-          where.appointmentDate = {
+          where.date = {
             gte: startDate,
             lt: new Date(startDate.getTime() + 24 * 60 * 60 * 1000),
           };
           break;
         case "week":
           startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          where.appointmentDate = { gte: startDate };
+          where.date = { gte: startDate };
           break;
         case "month":
           startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          where.appointmentDate = { gte: startDate };
+          where.date = { gte: startDate };
           break;
       }
     }
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         },
         skip,
         take: limit,
-        orderBy: { appointmentDate: "desc" },
+        orderBy: { date: "desc" },
       }),
       prisma.appointment.count({ where }),
     ]);
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       prisma.appointment.count({
         where: {
-          appointmentDate: {
+          date: {
             gte: todayStart,
             lt: todayEnd,
           },
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
     const existingAppointment = await prisma.appointment.findFirst({
       where: {
         chamberId,
-        appointmentDate: new Date(appointmentDate),
+        date: new Date(appointmentDate),
         slotNumber,
         status: { in: ["PENDING", "CONFIRMED"] },
       },
@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
         doctorId: chamber.doctorId,
         pharmacyId: chamber.pharmacyId,
         chamberId,
-        appointmentDate: new Date(appointmentDate),
+        date: new Date(appointmentDate),
         slotNumber,
         status: "PENDING",
         paymentStatus: "PENDING",

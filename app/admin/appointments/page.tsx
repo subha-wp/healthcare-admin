@@ -66,7 +66,7 @@ interface Appointment {
   doctorId: string;
   pharmacyId: string;
   chamberId: string;
-  appointmentDate: string;
+  date: string;
   slotNumber: number;
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
   paymentStatus: "PENDING" | "PAID" | "REFUNDED";
@@ -389,7 +389,7 @@ export default function AppointmentsPage() {
       return false;
 
     const today = new Date();
-    const appointmentDate = new Date(appointment.appointmentDate);
+    const appointmentDate = new Date(appointment.date);
 
     if (dateFilter === "today") {
       return appointmentDate.toDateString() === today.toDateString();
@@ -671,7 +671,7 @@ export default function AppointmentsPage() {
                     <TableBody>
                       {filteredAppointments.map((appointment) => (
                         <TableRow key={appointment.id}>
-                          <TableCell className="font-medium font-mono text-xs">
+                          <TableCell className="font-medium text-xs">
                             #{appointment.id.slice(-8)}
                           </TableCell>
                           <TableCell>
@@ -715,7 +715,7 @@ export default function AppointmentsPage() {
                             <div>
                               <p className="font-medium">
                                 {new Date(
-                                  appointment.appointmentDate
+                                  appointment.date
                                 ).toLocaleDateString()}
                               </p>
                               <p className="text-sm text-slate-500">

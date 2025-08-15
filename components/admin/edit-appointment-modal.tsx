@@ -76,7 +76,7 @@ export function EditAppointmentModal({
   useEffect(() => {
     if (appointment) {
       setFormData({
-        appointmentDate: new Date(appointment.appointmentDate),
+        appointmentDate: new Date(appointment.date),
         slotNumber: appointment.slotNumber.toString(),
         status: appointment.status,
         paymentStatus: appointment.paymentStatus,
@@ -318,7 +318,7 @@ export function EditAppointmentModal({
                 <div>
                   <span className="text-slate-500">Original Date:</span>
                   <p className="font-medium">
-                    {new Date(appointment.appointmentDate).toLocaleDateString()}
+                    {new Date(appointment.date).toLocaleDateString()}
                   </p>
                 </div>
               </div>

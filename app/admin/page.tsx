@@ -55,7 +55,7 @@ interface RecentAppointment {
       user: { email: string };
     };
   };
-  appointmentDate: string;
+  date: string;
   status: string;
   totalAmount: number;
 }
@@ -490,9 +490,7 @@ export default function AdminDashboard() {
                           {appointment.status}
                         </Badge>
                         <p className="text-xs text-slate-500 mt-1">
-                          {new Date(
-                            appointment.appointmentDate
-                          ).toLocaleDateString()}
+                          {new Date(appointment.date).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

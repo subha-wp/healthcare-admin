@@ -77,15 +77,15 @@ export async function PUT(
     // If changing date or slot, check availability
     if (
       (appointmentDate &&
-        appointmentDate !== currentAppointment.appointmentDate.toISOString()) ||
+        appointmentDate !== currentAppointment.date.toISOString()) ||
       (slotNumber && slotNumber !== currentAppointment.slotNumber)
     ) {
       const conflictingAppointment = await prisma.appointment.findFirst({
         where: {
           chamberId: currentAppointment.chamberId,
-          appointmentDate: appointmentDate
+          date: appointmentDate
             ? new Date(appointmentDate)
-            : currentAppointment.appointmentDate,
+            : currentAppointment.date,
           slotNumber: slotNumber || currentAppointment.slotNumber,
           status: { in: ["PENDING", "CONFIRMED"] },
           id: { not: id },
@@ -112,7 +112,7 @@ export async function PUT(
     }
 
     const updateData: any = {};
-    if (appointmentDate) updateData.appointmentDate = new Date(appointmentDate);
+    if (appointmentDate) updateData.date = new Date(appointmentDate);
     if (slotNumber) updateData.slotNumber = slotNumber;
     if (status) updateData.status = status;
     if (paymentStatus) updateData.paymentStatus = paymentStatus;

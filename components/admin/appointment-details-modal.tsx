@@ -187,14 +187,15 @@ export function AppointmentDetailsModal({
                     <div>
                       <span className="text-sm text-slate-500">Date:</span>
                       <p className="font-medium">
-                        {new Date(
-                          appointment.appointmentDate
-                        ).toLocaleDateString("en-US", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+                        {new Date(appointment.date).toLocaleDateString(
+                          "en-US",
+                          {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          }
+                        )}
                       </p>
                     </div>
                   </div>
