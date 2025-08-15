@@ -26,7 +26,7 @@ interface VerifyDoctorModalProps {
   doctor: any;
   isOpen: boolean;
   onClose: () => void;
-  onVerified: (doctorId: string) => void;
+  onVerified: (doctorId: string, verified: boolean, notes: string) => void;
 }
 
 export function VerifyDoctorModal({
@@ -37,22 +37,69 @@ export function VerifyDoctorModal({
 }: VerifyDoctorModalProps) {
   const [verificationNotes, setVerificationNotes] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const handleVerify = async () => {
     setIsVerifying(true);
 
-    // Simulate verification process
-    setTimeout(() => {
-      onVerified(doctor.id);
+    try {
+      const response = await fetch(`/api/admin/doctors/${doctor.id}/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          verified: true,
+          notes: verificationNotes,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to verify doctor");
+      }
+
+      onVerified(doctor.id, true, verificationNotes);
+      onClose();
+    } catch (error) {
+      console.error("Error verifying doctor:", error);
+      alert("Failed to verify doctor. Please try again.");
+    } finally {
       setIsVerifying(false);
-      setVerificationNotes("");
-    }, 1500);
+    }
   };
 
-  const handleReject = () => {
-    // Handle rejection logic here
-    console.log("Doctor verification rejected:", doctor.id, verificationNotes);
-    onClose();
+  const handleReject = async () => {
+    if (!verificationNotes.trim()) {
+      alert("Please provide rejection notes");
+      return;
+    }
+
+    setIsRejecting(true);
+
+    try {
+      const response = await fetch(`/api/admin/doctors/${doctor.id}/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          verified: false,
+          notes: verificationNotes,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to reject doctor");
+      }
+
+      onVerified(doctor.id, false, verificationNotes);
+      onClose();
+    } catch (error) {
+      console.error("Error rejecting doctor:", error);
+      alert("Failed to reject doctor. Please try again.");
+    } finally {
+      setIsRejecting(false);
+    }
   };
 
   return (
@@ -184,17 +231,24 @@ export function VerifyDoctorModal({
           {/* Verification Notes */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Verification Notes</CardTitle>
+              <CardTitle className="text-lg">
+                Verification Notes{" "}
+                {!doctor.isVerified && <span className="text-red-500">*</span>}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div>
-                <Label htmlFor="notes">Add verification notes (optional)</Label>
+                <Label htmlFor="notes">
+                  Add verification notes{" "}
+                  {!doctor.isVerified && "(required for rejection)"}
+                </Label>
                 <Textarea
                   id="notes"
                   value={verificationNotes}
                   onChange={(e) => setVerificationNotes(e.target.value)}
-                  placeholder="Add any notes about the verification process..."
+                  placeholder="Add any notes about the verification process or reasons for rejection..."
                   className="mt-2"
+                  required={!doctor.isVerified}
                 />
               </div>
             </CardContent>
@@ -218,10 +272,17 @@ export function VerifyDoctorModal({
             <Button
               variant="outline"
               onClick={handleReject}
+              disabled={isRejecting}
               className="text-red-600 hover:text-red-700 bg-transparent"
             >
-              <XCircle className="h-4 w-4 mr-2" />
-              Reject
+              {isRejecting ? (
+                "Rejecting..."
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Reject
+                </>
+              )}
             </Button>
             <Button onClick={handleVerify} disabled={isVerifying}>
               {isVerifying ? (

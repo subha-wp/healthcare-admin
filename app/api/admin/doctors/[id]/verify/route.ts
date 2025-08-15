@@ -25,8 +25,17 @@ export async function POST(
       },
       include: {
         user: true,
+        chambers: true,
       },
     });
+
+    // If doctor is being verified, also update any existing chambers
+    if (verified) {
+      await prisma.chamber.updateMany({
+        where: { doctorId: id },
+        data: { isActive: true },
+      });
+    }
 
     return NextResponse.json({ doctor: updatedDoctor });
   } catch (error) {

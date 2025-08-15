@@ -1,10 +1,16 @@
-"use client"
+"use client";
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   User,
   Phone,
@@ -18,15 +24,19 @@ import {
   Building2,
   Users,
   Download,
-} from "lucide-react"
+} from "lucide-react";
 
 interface DoctorDetailsModalProps {
-  doctor: any
-  isOpen: boolean
-  onClose: () => void
+  doctor: any;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function DoctorDetailsModal({ doctor, isOpen, onClose }: DoctorDetailsModalProps) {
+export function DoctorDetailsModal({
+  doctor,
+  isOpen,
+  onClose,
+}: DoctorDetailsModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -48,12 +58,14 @@ export function DoctorDetailsModal({ doctor, isOpen, onClose }: DoctorDetailsMod
               )}
             </Badge>
           </DialogTitle>
-          <DialogDescription>Complete doctor profile and verification details</DialogDescription>
+          <DialogDescription>
+            Complete doctor profile and verification details
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className=" gap-6">
           {/* Left Column - Basic Info */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className=" space-y-6">
             {/* Personal Information */}
             <Card>
               <CardHeader>
@@ -75,13 +87,17 @@ export function DoctorDetailsModal({ doctor, isOpen, onClose }: DoctorDetailsMod
                   </div>
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-slate-500" />
-                    <span className="text-sm">{doctor.experience} years experience</span>
+                    <span className="text-sm">
+                      {doctor.experience} years experience
+                    </span>
                   </div>
                 </div>
                 <Separator />
                 <div>
                   <h4 className="font-medium mb-2">Qualification</h4>
-                  <p className="text-sm text-slate-600">{doctor.qualification}</p>
+                  <p className="text-sm text-slate-600">
+                    {doctor.qualification}
+                  </p>
                 </div>
                 {doctor.about && (
                   <div>
@@ -101,11 +117,15 @@ export function DoctorDetailsModal({ doctor, isOpen, onClose }: DoctorDetailsMod
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-medium mb-1">License Number</h4>
-                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">{doctor.licenseNo}</p>
+                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">
+                      {doctor.licenseNo}
+                    </p>
                   </div>
                   <div>
                     <h4 className="font-medium mb-1">Aadhaar Number</h4>
-                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">{doctor.aadhaarNo}</p>
+                    <p className="text-sm font-mono bg-slate-100 p-2 rounded">
+                      {doctor.aadhaarNo}
+                    </p>
                   </div>
                 </div>
                 <Separator />
@@ -139,15 +159,20 @@ export function DoctorDetailsModal({ doctor, isOpen, onClose }: DoctorDetailsMod
             {doctor.isVerified && (
               <Card className="border-green-200 bg-green-50">
                 <CardHeader>
-                  <CardTitle className="text-lg text-green-800">Verification Status</CardTitle>
+                  <CardTitle className="text-lg text-green-800">
+                    Verification Status
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center space-x-2 mb-2">
                     <CheckCircle className="h-5 w-5 text-green-600" />
-                    <span className="font-medium text-green-800">Verified Doctor</span>
+                    <span className="font-medium text-green-800">
+                      Verified Doctor
+                    </span>
                   </div>
                   <p className="text-sm text-green-700">
-                    Verified on {new Date(doctor.verificationDate).toLocaleDateString()}
+                    Verified on{" "}
+                    {new Date(doctor.verificationDate).toLocaleDateString()}
                   </p>
                 </CardContent>
               </Card>
@@ -181,14 +206,18 @@ export function DoctorDetailsModal({ doctor, isOpen, onClose }: DoctorDetailsMod
                     <Users className="h-4 w-4 text-green-500" />
                     <span className="text-sm">Total Appointments</span>
                   </div>
-                  <span className="font-semibold">{doctor.totalAppointments}</span>
+                  <span className="font-semibold">
+                    {doctor.totalAppointments}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Calendar className="h-4 w-4 text-purple-500" />
                     <span className="text-sm">Joined</span>
                   </div>
-                  <span className="text-sm">{new Date(doctor.createdAt).toLocaleDateString()}</span>
+                  <span className="text-sm">
+                    {new Date(doctor.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -226,5 +255,5 @@ export function DoctorDetailsModal({ doctor, isOpen, onClose }: DoctorDetailsMod
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
