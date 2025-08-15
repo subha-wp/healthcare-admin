@@ -110,7 +110,7 @@ model Doctor {
   aadhaarNo         String          @unique
   documents         Json // Stores document URLs for license and aadhaar
   user              User            @relation(fields: [userId], references: [id])
-  consultationFee   Float           @default(500)
+  consultationFee   Float?
   isVerified        Boolean         @default(false)
   verificationDate  DateTime?
   verificationNotes String?

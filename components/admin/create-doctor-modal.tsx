@@ -46,7 +46,7 @@ export function CreateDoctorModal({
     licenseNumber: "",
     aadhaarNo: "",
     about: "",
-    consultationFee: "500",
+    consultationFee: "0", // Changed default from "500" to "0"
   });
   const [generatedCredentials, setGeneratedCredentials] =
     useState<GeneratedCredentials | null>(null);
@@ -75,24 +75,10 @@ export function CreateDoctorModal({
       newErrors.aadhaarNo = "Aadhaar number is required";
     if (
       !formData.consultationFee ||
-      Number.parseFloat(formData.consultationFee) <= 0
+      Number.parseFloat(formData.consultationFee) < 0
     ) {
-      newErrors.consultationFee = "Valid consultation fee is required";
-    }
-
-    // Validate phone number format
-    const phoneRegex = /^[+]?[\d\s-()]{10,}$/;
-    if (formData.phone && !phoneRegex.test(formData.phone)) {
-      newErrors.phone = "Invalid phone number format";
-    }
-
-    // Validate Aadhaar number format (12 digits)
-    const aadhaarRegex = /^\d{12}$/;
-    if (
-      formData.aadhaarNo &&
-      !aadhaarRegex.test(formData.aadhaarNo.replace(/\s/g, ""))
-    ) {
-      newErrors.aadhaarNo = "Aadhaar number must be 12 digits";
+      newErrors.consultationFee =
+        "Valid consultation fee is required (0 or more)";
     }
 
     setErrors(newErrors);
@@ -229,7 +215,7 @@ export function CreateDoctorModal({
       licenseNumber: "",
       aadhaarNo: "",
       about: "",
-      consultationFee: "500",
+      consultationFee: "0", // Changed reset value from "500" to "0"
     });
     setGeneratedCredentials(null);
     setErrors({});
@@ -498,7 +484,7 @@ export function CreateDoctorModal({
                   <Input
                     id="consultationFee"
                     type="number"
-                    min="100"
+                    min="0" // Changed minimum from "100" to "0"
                     max="10000"
                     value={formData.consultationFee}
                     onChange={(e) =>
@@ -507,7 +493,7 @@ export function CreateDoctorModal({
                         consultationFee: e.target.value,
                       })
                     }
-                    placeholder="500"
+                    placeholder="0" // Changed placeholder from "500" to "0"
                     className={errors.consultationFee ? "border-red-500" : ""}
                   />
                   {errors.consultationFee && (
