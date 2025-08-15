@@ -1,8 +1,16 @@
-"use client"
+"use client";
 
-import { Bell, Search, User, LogOut, Shield, Settings, UserCog } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import {
+  Bell,
+  Search,
+  User,
+  LogOut,
+  Shield,
+  Settings,
+  UserCog,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,72 +18,85 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface AdminUser {
-  id: string
-  email: string
-  role: "ADMIN" | "OFFICE_MANAGER"
+  id: string;
+  email: string;
+  role: "ADMIN" | "OFFICE_MANAGER";
   admin?: {
-    id: string
-    name: string
-    phone?: string
-    department?: string
-    permissions?: any
-    lastLogin?: Date
-  }
+    id: string;
+    name: string;
+    phone?: string;
+    department?: string;
+    permissions?: any;
+    lastLogin?: Date;
+  };
 }
 
 export function Header() {
-  const [user, setUser] = useState<AdminUser | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
+  const [user, setUser] = useState<AdminUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    fetchUser()
-  }, [])
+    fetchUser();
+  }, []);
 
   const fetchUser = async () => {
     try {
-      const response = await fetch("/api/admin/auth/me")
+      const response = await fetch("/api/admin/auth/me");
       if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
+        const data = await response.json();
+        setUser(data.user);
       }
     } catch (error) {
-      console.error("Failed to fetch user:", error)
+      console.error("Failed to fetch user:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/admin/auth/logout", { method: "POST" })
-      router.push("/admin/login")
+      await fetch("/api/admin/auth/logout", { method: "POST" });
+      router.push("/admin/login");
     } catch (error) {
-      console.error("Logout failed:", error)
+      console.error("Logout failed:", error);
     }
-  }
+  };
 
   const getRoleIcon = (role: string) => {
-    return role === "ADMIN" ? <Shield className="h-3 w-3" /> : <UserCog className="h-3 w-3" />
-  }
+    return role === "ADMIN" ? (
+      <Shield className="h-3 w-3" />
+    ) : (
+      <UserCog className="h-3 w-3" />
+    );
+  };
 
   const getRoleBadgeColor = (role: string) => {
-    return role === "ADMIN" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"
-  }
+    return role === "ADMIN"
+      ? "bg-red-100 text-red-800"
+      : "bg-blue-100 text-blue-800";
+  };
 
   return (
     <header className="bg-white border-b border-slate-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold text-slate-900">Healthcare Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            <span className="text-[#228b42]">BookMyChamber</span> Admin
+            Dashboard
+          </h1>
           {user && (
-            <Badge className={`${getRoleBadgeColor(user.role)} flex items-center gap-1`}>
+            <Badge
+              className={`${getRoleBadgeColor(
+                user.role
+              )} flex items-center gap-1`}
+            >
               {getRoleIcon(user.role)}
               {user.role.replace("_", " ")}
             </Badge>
@@ -100,12 +121,20 @@ export function Header() {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2"
+              >
                 <User className="h-5 w-5" />
                 {user && !isLoading && (
                   <div className="text-left">
-                    <div className="text-sm font-medium">{user.admin?.name || user.email}</div>
-                    <div className="text-xs text-slate-500">{user.admin?.department || "Admin"}</div>
+                    <div className="text-sm font-medium">
+                      {user.admin?.name || user.email}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {user.admin?.department || "Admin"}
+                    </div>
                   </div>
                 )}
               </Button>
@@ -113,11 +142,17 @@ export function Header() {
             <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.admin?.name || "Admin User"}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                  <p className="text-sm font-medium leading-none">
+                    {user?.admin?.name || "Admin User"}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                  </p>
                   <div className="flex items-center gap-1 mt-1">
                     {user && getRoleIcon(user.role)}
-                    <span className="text-xs text-muted-foreground">{user?.role.replace("_", " ")}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {user?.role.replace("_", " ")}
+                    </span>
                   </div>
                 </div>
               </DropdownMenuLabel>
@@ -142,5 +177,5 @@ export function Header() {
         </div>
       </div>
     </header>
-  )
+  );
 }
