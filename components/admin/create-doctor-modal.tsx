@@ -101,12 +101,9 @@ export function CreateDoctorModal({
         formData.firstName.charAt(0).toUpperCase() +
         formData.firstName.slice(1).toLowerCase();
 
-      // Get last 6 digits of Aadhaar number (remove spaces and get last 6)
       const aadhaarClean = formData.aadhaarNo.replace(/\s/g, "");
       const last6Digits = aadhaarClean.slice(-6);
 
-      // Create password: FirstName + Last6Digits + @
-      // Example: John123456@ or Priya789012@
       return `${firstName}${last6Digits}@`;
     };
 
@@ -127,7 +124,6 @@ export function CreateDoctorModal({
       });
       return;
     }
-
     setIsSubmitting(true);
     setErrors({});
 
