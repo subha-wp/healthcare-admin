@@ -1,42 +1,59 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CheckCircle, XCircle, FileText, User, AlertTriangle } from "lucide-react"
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  CheckCircle,
+  XCircle,
+  FileText,
+  User,
+  AlertTriangle,
+} from "lucide-react";
 
 interface VerifyDoctorModalProps {
-  doctor: any
-  isOpen: boolean
-  onClose: () => void
-  onVerified: (doctorId: string) => void
+  doctor: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onVerified: (doctorId: string) => void;
 }
 
-export function VerifyDoctorModal({ doctor, isOpen, onClose, onVerified }: VerifyDoctorModalProps) {
-  const [verificationNotes, setVerificationNotes] = useState("")
-  const [isVerifying, setIsVerifying] = useState(false)
+export function VerifyDoctorModal({
+  doctor,
+  isOpen,
+  onClose,
+  onVerified,
+}: VerifyDoctorModalProps) {
+  const [verificationNotes, setVerificationNotes] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const handleVerify = async () => {
-    setIsVerifying(true)
+    setIsVerifying(true);
 
     // Simulate verification process
     setTimeout(() => {
-      onVerified(doctor.id)
-      setIsVerifying(false)
-      setVerificationNotes("")
-    }, 1500)
-  }
+      onVerified(doctor.id);
+      setIsVerifying(false);
+      setVerificationNotes("");
+    }, 1500);
+  };
 
   const handleReject = () => {
     // Handle rejection logic here
-    console.log("Doctor verification rejected:", doctor.id, verificationNotes)
-    onClose()
-  }
+    console.log("Doctor verification rejected:", doctor.id, verificationNotes);
+    onClose();
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -46,7 +63,9 @@ export function VerifyDoctorModal({ doctor, isOpen, onClose, onVerified }: Verif
             <User className="h-5 w-5" />
             <span>Verify Doctor: {doctor.name}</span>
           </DialogTitle>
-          <DialogDescription>Review doctor credentials and approve or reject verification</DialogDescription>
+          <DialogDescription>
+            Review doctor credentials and approve or reject verification
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -67,19 +86,24 @@ export function VerifyDoctorModal({ doctor, isOpen, onClose, onVerified }: Verif
                   <span className="font-medium">Phone:</span> {doctor.phone}
                 </div>
                 <div>
-                  <span className="font-medium">Specialization:</span> {doctor.specialization}
+                  <span className="font-medium">Specialization:</span>{" "}
+                  {doctor.specialization}
                 </div>
                 <div>
-                  <span className="font-medium">Qualification:</span> {doctor.qualification}
+                  <span className="font-medium">Qualification:</span>{" "}
+                  {doctor.qualification}
                 </div>
                 <div>
-                  <span className="font-medium">Experience:</span> {doctor.experience} years
+                  <span className="font-medium">Experience:</span>{" "}
+                  {doctor.experience} years
                 </div>
                 <div>
-                  <span className="font-medium">License No:</span> {doctor.licenseNo}
+                  <span className="font-medium">License No:</span>{" "}
+                  {doctor.licenseNo}
                 </div>
                 <div>
-                  <span className="font-medium">Aadhaar No:</span> {doctor.aadhaarNo}
+                  <span className="font-medium">Aadhaar No:</span>{" "}
+                  {doctor.aadhaarNo}
                 </div>
               </div>
               {doctor.about && (
@@ -135,7 +159,9 @@ export function VerifyDoctorModal({ doctor, isOpen, onClose, onVerified }: Verif
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">Medical license number verified</span>
+                  <span className="text-sm">
+                    Medical license number verified
+                  </span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
@@ -143,7 +169,9 @@ export function VerifyDoctorModal({ doctor, isOpen, onClose, onVerified }: Verif
                 </div>
                 <div className="flex items-center space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">Professional qualifications reviewed</span>
+                  <span className="text-sm">
+                    Professional qualifications reviewed
+                  </span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
@@ -176,8 +204,9 @@ export function VerifyDoctorModal({ doctor, isOpen, onClose, onVerified }: Verif
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Once verified, the doctor will be able to create chambers and accept appointments. Please ensure all
-              information is accurate before proceeding.
+              Once verified, the doctor will be able to create chambers and
+              accept appointments. Please ensure all information is accurate
+              before proceeding.
             </AlertDescription>
           </Alert>
 
@@ -186,7 +215,11 @@ export function VerifyDoctorModal({ doctor, isOpen, onClose, onVerified }: Verif
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="outline" onClick={handleReject} className="text-red-600 hover:text-red-700 bg-transparent">
+            <Button
+              variant="outline"
+              onClick={handleReject}
+              className="text-red-600 hover:text-red-700 bg-transparent"
+            >
               <XCircle className="h-4 w-4 mr-2" />
               Reject
             </Button>
@@ -204,5 +237,5 @@ export function VerifyDoctorModal({ doctor, isOpen, onClose, onVerified }: Verif
         </div>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

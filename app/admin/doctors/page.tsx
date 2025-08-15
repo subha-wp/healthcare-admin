@@ -187,6 +187,22 @@ export default function DoctorsPage() {
     return true;
   });
 
+  const handleCreateDoctor = (newDoctor: any) => {
+    // Refresh the doctors list after creation
+    fetchDoctors(
+      pagination.page,
+      searchTerm,
+      specializationFilter,
+      verificationFilter
+    );
+    setIsCreateModalOpen(false);
+    toast({
+      title: "Success",
+      description:
+        "Doctor created successfully with auto-generated credentials",
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -583,20 +599,7 @@ export default function DoctorsPage() {
       <CreateDoctorModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onDoctorCreated={(newDoctor) => {
-          fetchDoctors(
-            pagination.page,
-            searchTerm,
-            specializationFilter,
-            verificationFilter
-          );
-          setIsCreateModalOpen(false);
-          toast({
-            title: "Success",
-            description:
-              "Doctor created successfully with auto-generated credentials",
-          });
-        }}
+        onDoctorCreated={handleCreateDoctor}
       />
 
       {verifyingDoctor && (

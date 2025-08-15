@@ -1,8 +1,6 @@
-//@ts-nocheck
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import {
   Dialog,
@@ -18,12 +16,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Key, Mail, User, Copy, CheckCircle } from "lucide-react";
+import { Key, Mail, User, Copy, CheckCircle, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreateDoctorModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDoctorCreated: (doctor: any) => void;
+}
+
+interface GeneratedCredentials {
+  email: string;
+  password: string;
 }
 
 export function CreateDoctorModal({
@@ -42,10 +46,58 @@ export function CreateDoctorModal({
     licenseNumber: "",
     aadhaarNo: "",
     about: "",
-    consultationFee: "",
+    consultationFee: "500",
   });
-  const [generatedCredentials, setGeneratedCredentials] = useState(null);
+  const [generatedCredentials, setGeneratedCredentials] =
+    useState<GeneratedCredentials | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { toast } = useToast();
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.firstName.trim())
+      newErrors.firstName = "First name is required";
+    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
+    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+    if (!formData.address.trim()) newErrors.address = "Address is required";
+    if (!formData.specialization.trim())
+      newErrors.specialization = "Specialization is required";
+    if (!formData.qualification.trim())
+      newErrors.qualification = "Qualification is required";
+    if (!formData.experience || Number.parseInt(formData.experience) < 0) {
+      newErrors.experience = "Valid experience is required";
+    }
+    if (!formData.licenseNumber.trim())
+      newErrors.licenseNumber = "License number is required";
+    if (!formData.aadhaarNo.trim())
+      newErrors.aadhaarNo = "Aadhaar number is required";
+    if (
+      !formData.consultationFee ||
+      Number.parseFloat(formData.consultationFee) <= 0
+    ) {
+      newErrors.consultationFee = "Valid consultation fee is required";
+    }
+
+    // Validate phone number format
+    const phoneRegex = /^[+]?[\d\s-()]{10,}$/;
+    if (formData.phone && !phoneRegex.test(formData.phone)) {
+      newErrors.phone = "Invalid phone number format";
+    }
+
+    // Validate Aadhaar number format (12 digits)
+    const aadhaarRegex = /^\d{12}$/;
+    if (
+      formData.aadhaarNo &&
+      !aadhaarRegex.test(formData.aadhaarNo.replace(/\s/g, ""))
+    ) {
+      newErrors.aadhaarNo = "Aadhaar number must be 12 digits";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const generateCredentials = () => {
     // Generate email from name
@@ -55,7 +107,7 @@ export function CreateDoctorModal({
       .replace(/\s+/g, ".")
       .replace(/^dr\.?/, "dr.");
     const domain = "@healthcareapp.com";
-    const generatedEmail = email + domain;
+    const generatedEmail = `dr.${email}${domain}`;
 
     // Generate secure password
     const generatePassword = () => {
@@ -76,50 +128,93 @@ export function CreateDoctorModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
+    setErrors({});
 
-    // Generate credentials
-    const credentials = generateCredentials();
-    setGeneratedCredentials(credentials);
+    try {
+      // Generate credentials first
+      const credentials = generateCredentials();
 
-    // Create doctor object
-    const newDoctor = {
-      id: Date.now().toString(),
-      userId: `user_${Date.now()}`,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: credentials.email,
-      phone: formData.phone,
-      address: formData.address,
-      specialization: formData.specialization,
-      qualification: formData.qualification,
-      experience: Number.parseInt(formData.experience),
-      licenseNumber: formData.licenseNumber,
-      aadhaarNo: formData.aadhaarNo,
-      consultationFee: Number.parseFloat(formData.consultationFee),
-      about: formData.about,
-      isVerified: false,
-      verificationDate: null,
-      avatarUrl: null,
-      documents: {
-        license: null,
-        aadhaar: null,
-      },
-      chambers: 0,
-      totalAppointments: 0,
-      rating: 0,
-      createdAt: new Date().toISOString(),
-    };
+      // Prepare data for API
+      const doctorData = {
+        email: credentials.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone,
+        address: formData.address,
+        specialization: formData.specialization,
+        qualification: formData.qualification,
+        experience: Number.parseInt(formData.experience),
+        licenseNumber: formData.licenseNumber,
+        aadhaarNo: formData.aadhaarNo.replace(/\s/g, ""), // Remove spaces
+        consultationFee: Number.parseFloat(formData.consultationFee),
+        about: formData.about,
+        documents: {}, // Empty documents object for now
+      };
 
-    // Simulate API call
-    setTimeout(() => {
-      onDoctorCreated(newDoctor);
+      // Call API to create doctor
+      const response = await fetch("/api/admin/doctors", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(doctorData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create doctor");
+      }
+
+      const result = await response.json();
+
+      // Set credentials for display
+      setGeneratedCredentials({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      toast({
+        title: "Success",
+        description:
+          "Doctor created successfully with auto-generated credentials",
+      });
+
+      // Call the callback with the created doctor
+      onDoctorCreated(result.doctor);
+    } catch (error) {
+      console.error("Error creating doctor:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to create doctor",
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied",
+        description: "Copied to clipboard",
+      });
+    } catch (error) {
+      console.error("Failed to copy:", error);
+    }
   };
 
   const resetForm = () => {
@@ -134,9 +229,10 @@ export function CreateDoctorModal({
       licenseNumber: "",
       aadhaarNo: "",
       about: "",
-      consultationFee: "",
+      consultationFee: "500",
     });
     setGeneratedCredentials(null);
+    setErrors({});
   };
 
   const handleClose = () => {
@@ -144,6 +240,7 @@ export function CreateDoctorModal({
     onClose();
   };
 
+  // Show credentials screen after successful creation
   if (generatedCredentials) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -154,7 +251,8 @@ export function CreateDoctorModal({
               <span>Doctor Created Successfully!</span>
             </DialogTitle>
             <DialogDescription>
-              Auto-generated login credentials for {formData.name}
+              Auto-generated login credentials for Dr. {formData.firstName}{" "}
+              {formData.lastName}
             </DialogDescription>
           </DialogHeader>
 
@@ -277,6 +375,7 @@ export function CreateDoctorModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Personal Information */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Personal Information</CardTitle>
@@ -284,7 +383,7 @@ export function CreateDoctorModal({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="firstName">First Name *</Label>
                   <Input
                     id="firstName"
                     value={formData.firstName}
@@ -292,11 +391,16 @@ export function CreateDoctorModal({
                       setFormData({ ...formData, firstName: e.target.value })
                     }
                     placeholder="John"
-                    required
+                    className={errors.firstName ? "border-red-500" : ""}
                   />
+                  {errors.firstName && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.firstName}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="lastName">Last Name *</Label>
                   <Input
                     id="lastName"
                     value={formData.lastName}
@@ -304,11 +408,16 @@ export function CreateDoctorModal({
                       setFormData({ ...formData, lastName: e.target.value })
                     }
                     placeholder="Smith"
-                    required
+                    className={errors.lastName ? "border-red-500" : ""}
                   />
+                  {errors.lastName && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.lastName}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">Phone Number *</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
@@ -316,23 +425,14 @@ export function CreateDoctorModal({
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     placeholder="+1234567890"
-                    required
+                    className={errors.phone ? "border-red-500" : ""}
                   />
+                  {errors.phone && (
+                    <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
-                    placeholder="123 Medical Street, City"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="specialization">Specialization</Label>
+                  <Label htmlFor="specialization">Specialization *</Label>
                   <Input
                     id="specialization"
                     value={formData.specialization}
@@ -343,27 +443,63 @@ export function CreateDoctorModal({
                       })
                     }
                     placeholder="Cardiology"
-                    required
+                    className={errors.specialization ? "border-red-500" : ""}
                   />
+                  {errors.specialization && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.specialization}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="experience">Experience (years)</Label>
+                  <Label htmlFor="qualification">Qualification *</Label>
+                  <Input
+                    id="qualification"
+                    value={formData.qualification}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        qualification: e.target.value,
+                      })
+                    }
+                    placeholder="MD, MBBS"
+                    className={errors.qualification ? "border-red-500" : ""}
+                  />
+                  {errors.qualification && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.qualification}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="experience">Experience (years) *</Label>
                   <Input
                     id="experience"
                     type="number"
+                    min="0"
+                    max="50"
                     value={formData.experience}
                     onChange={(e) =>
                       setFormData({ ...formData, experience: e.target.value })
                     }
                     placeholder="10"
-                    required
+                    className={errors.experience ? "border-red-500" : ""}
                   />
+                  {errors.experience && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.experience}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="consultationFee">Consultation Fee (₹)</Label>
+                  <Label htmlFor="consultationFee">
+                    Consultation Fee (₹) *
+                  </Label>
                   <Input
                     id="consultationFee"
                     type="number"
+                    min="100"
+                    max="10000"
                     value={formData.consultationFee}
                     onChange={(e) =>
                       setFormData({
@@ -372,21 +508,29 @@ export function CreateDoctorModal({
                       })
                     }
                     placeholder="500"
-                    required
+                    className={errors.consultationFee ? "border-red-500" : ""}
                   />
+                  {errors.consultationFee && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.consultationFee}
+                    </p>
+                  )}
                 </div>
               </div>
               <div>
-                <Label htmlFor="qualification">Qualification</Label>
-                <Input
-                  id="qualification"
-                  value={formData.qualification}
+                <Label htmlFor="address">Address *</Label>
+                <Textarea
+                  id="address"
+                  value={formData.address}
                   onChange={(e) =>
-                    setFormData({ ...formData, qualification: e.target.value })
+                    setFormData({ ...formData, address: e.target.value })
                   }
-                  placeholder="MD, MBBS"
-                  required
+                  placeholder="123 Medical Street, City, State - 400001"
+                  className={errors.address ? "border-red-500" : ""}
                 />
+                {errors.address && (
+                  <p className="text-sm text-red-500 mt-1">{errors.address}</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="about">About (Optional)</Label>
@@ -402,6 +546,7 @@ export function CreateDoctorModal({
             </CardContent>
           </Card>
 
+          {/* Professional Details */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Professional Details</CardTitle>
@@ -409,7 +554,9 @@ export function CreateDoctorModal({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="licenseNumber">Medical License Number</Label>
+                  <Label htmlFor="licenseNumber">
+                    Medical License Number *
+                  </Label>
                   <Input
                     id="licenseNumber"
                     value={formData.licenseNumber}
@@ -420,20 +567,34 @@ export function CreateDoctorModal({
                       })
                     }
                     placeholder="DOC123456"
-                    required
+                    className={errors.licenseNumber ? "border-red-500" : ""}
                   />
+                  {errors.licenseNumber && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.licenseNumber}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="aadhaarNo">Aadhaar Number</Label>
+                  <Label htmlFor="aadhaarNo">Aadhaar Number *</Label>
                   <Input
                     id="aadhaarNo"
                     value={formData.aadhaarNo}
                     onChange={(e) =>
                       setFormData({ ...formData, aadhaarNo: e.target.value })
                     }
-                    placeholder="1234-5678-9012"
-                    required
+                    placeholder="1234 5678 9012"
+                    maxLength={12}
+                    className={errors.aadhaarNo ? "border-red-500" : ""}
                   />
+                  {errors.aadhaarNo && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.aadhaarNo}
+                    </p>
+                  )}
+                  <p className="text-xs text-slate-500 mt-1">
+                    12-digit Aadhaar number
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -448,12 +609,25 @@ export function CreateDoctorModal({
             </AlertDescription>
           </Alert>
 
+          {/* Actions */}
           <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating Doctor..." : "Create Doctor"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating Doctor...
+                </>
+              ) : (
+                "Create Doctor"
+              )}
             </Button>
           </div>
         </form>
