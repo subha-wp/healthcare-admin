@@ -678,41 +678,4 @@ export function EditChamberModal({
       </DialogContent>
     </Dialog>
   );
-
-  function handleWeekNumberToggle(weekNumber: string, checked: boolean) {
-    setFormData((prev) => ({
-      ...prev,
-      weekNumbers: checked
-        ? [...prev.weekNumbers, weekNumber]
-        : prev.weekNumbers.filter((w) => w !== weekNumber),
-    }));
-  }
-
-  function getScheduleDescription() {
-    if (!formData.scheduleType || !formData.weekDay) return "";
-
-    const dayName =
-      formData.weekDay.charAt(0) + formData.weekDay.slice(1).toLowerCase();
-
-    if (formData.scheduleType === "WEEKLY_RECURRING") {
-      return `Every ${dayName}`;
-    } else if (
-      formData.scheduleType === "MONTHLY_SPECIFIC" &&
-      formData.weekNumbers.length > 0
-    ) {
-      const weekMap = {
-        FIRST: "1st",
-        SECOND: "2nd",
-        THIRD: "3rd",
-        FOURTH: "4th",
-        LAST: "Last",
-      };
-      const weekDescriptions = formData.weekNumbers.map(
-        (w) => weekMap[w as keyof typeof weekMap]
-      );
-      return `${weekDescriptions.join(" and ")} ${dayName} of every month`;
-    }
-
-    return "";
-  }
 }
