@@ -47,17 +47,53 @@ export function VerifyChamberModal({
   const [isRejecting, setIsRejecting] = useState(false);
   const { toast } = useToast();
 
-  const getWeekDayDisplay = (weekNumber: string, weekDay: string) => {
-    const weekMap = {
-      FIRST: "1st",
-      SECOND: "2nd",
-      THIRD: "3rd",
-      FOURTH: "4th",
-      LAST: "Last",
-    };
-    return `${weekMap[weekNumber as keyof typeof weekMap]} ${
-      weekDay.charAt(0) + weekDay.slice(1).toLowerCase()
-    }`;
+  const getScheduleDisplay = (chamber: any) => {
+    if (!chamber.weekDay) return "Not configured";
+
+    const dayName =
+      chamber.weekDay.charAt(0) + chamber.weekDay.slice(1).toLowerCase();
+
+    if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
+      return `Every ${dayName}`;
+    } else if (
+      chamber.scheduleType === "MONTHLY_SPECIFIC" &&
+      chamber.weekNumbers?.length > 0
+    ) {
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      const weekDescriptions = chamber.weekNumbers.map(
+        (w: string) => weekMap[w as keyof typeof weekMap]
+      );
+      return `${weekDescriptions.join(" & ")} ${dayName} of every month`;
+    } else if (chamber.weekNumber) {
+      // Backward compatibility
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      return `${
+        weekMap[chamber.weekNumber as keyof typeof weekMap]
+      } ${dayName}`;
+    }
+
+    return "Custom schedule";
+  };
+
+  const getScheduleTypeDisplay = (chamber: any) => {
+    if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
+      return "Weekly Recurring";
+    } else if (chamber.scheduleType === "MONTHLY_SPECIFIC") {
+      return "Monthly Specific";
+    }
+    return "Legacy Format";
   };
 
   const handleVerify = async () => {
@@ -187,7 +223,10 @@ export function VerifyChamberModal({
                     <div>
                       <span className="text-sm text-slate-500">Schedule:</span>
                       <p className="font-medium">
-                        {getWeekDayDisplay(chamber.weekNumber, chamber.weekDay)}
+                        {getScheduleDisplay(chamber)}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {getScheduleTypeDisplay(chamber)}
                       </p>
                     </div>
                   </div>

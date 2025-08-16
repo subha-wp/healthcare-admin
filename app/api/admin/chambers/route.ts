@@ -123,8 +123,10 @@ export async function POST(request: NextRequest) {
     const {
       doctorId,
       pharmacyId,
-      weekNumber,
+      scheduleType,
       weekDay,
+      weekNumbers,
+      isRecurring,
       startTime,
       endTime,
       slotDuration,
@@ -135,7 +137,7 @@ export async function POST(request: NextRequest) {
     if (
       !doctorId ||
       !pharmacyId ||
-      !weekNumber ||
+      !scheduleType ||
       !weekDay ||
       !startTime ||
       !endTime ||
@@ -148,6 +150,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate schedule type specific requirements
+    if (
+      scheduleType === "MONTHLY_SPECIFIC" &&
+      (!weekNumbers || weekNumbers.length === 0)
+    ) {
+      return NextResponse.json(
+        { error: "Week numbers are required for monthly specific schedule" },
+        { status: 400 }
+      );
+    }
     // Verify doctor and pharmacy exist and are verified
     const [doctor, pharmacy] = await Promise.all([
       prisma.doctor.findUnique({ where: { id: doctorId } }),
@@ -168,25 +180,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for scheduling conflicts
-    const existingChamber = await prisma.chamber.findFirst({
-      where: {
-        doctorId,
-        weekNumber,
-        weekDay,
-        isActive: true,
-      },
-    });
-
-    if (existingChamber) {
-      return NextResponse.json(
-        {
-          error: "Doctor already has a chamber scheduled for this time slot",
+    // Enhanced conflict checking based on schedule type
+    if (scheduleType === "WEEKLY_RECURRING") {
+      const existingChamber = await prisma.chamber.findFirst({
+        where: {
+          doctorId,
+          scheduleType: "WEEKLY_RECURRING",
+          weekDay,
+          isActive: true,
         },
-        { status: 400 }
-      );
-    }
+      });
 
+      if (existingChamber) {
+        return NextResponse.json(
+          {
+            error: `Doctor already has a weekly recurring chamber on ${weekDay.toLowerCase()}`,
+          },
+          { status: 400 }
+        );
+      }
+    } else if (scheduleType === "MONTHLY_SPECIFIC") {
+      // Check for overlapping week numbers on the same day
+      const existingChambers = await prisma.chamber.findMany({
+        where: {
+          doctorId,
+          scheduleType: "MONTHLY_SPECIFIC",
+          weekDay,
+          isActive: true,
+        },
+      });
+
+      for (const existing of existingChambers) {
+        const overlap = existing.weekNumbers.some((week: string) =>
+          weekNumbers.includes(week)
+        );
+        if (overlap) {
+          return NextResponse.json(
+            {
+              error: `Doctor already has a chamber scheduled for some of these weeks on ${weekDay.toLowerCase()}`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
     // Calculate max slots
     const start = new Date(`2000-01-01T${startTime}:00`);
     const end = new Date(`2000-01-01T${endTime}:00`);
@@ -206,8 +243,10 @@ export async function POST(request: NextRequest) {
       data: {
         doctorId,
         pharmacyId,
-        weekNumber,
+        scheduleType,
         weekDay,
+        weekNumbers: scheduleType === "MONTHLY_SPECIFIC" ? weekNumbers : [],
+        isRecurring: scheduleType === "WEEKLY_RECURRING",
         startTime,
         endTime,
         slotDuration: Number.parseInt(slotDuration),

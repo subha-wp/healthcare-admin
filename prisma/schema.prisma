@@ -141,27 +141,35 @@ model Pharmacy {
 }
 
 model Chamber {
-  id                String     @id @default(cuid())
+  id                String       @id @default(cuid())
   doctorId          String
   pharmacyId        String
-  weekNumber        WeekNumber
-  weekDay           WeekDay
+  scheduleType      ScheduleType
+  weekDay           WeekDay?
+  weekNumbers       WeekNumber[] // For multiple week numbers like [SECOND, FOURTH]
+  isRecurring       Boolean      @default(true) // Weekly recurring vs specific weeks
   startTime         String // Format: "HH:mm"
   endTime           String // Format: "HH:mm"
   fees              Float
-  isActive          Boolean    @default(true)
+  isActive          Boolean      @default(true)
   slotDuration      Int // Duration of each slot in minutes
   maxSlots          Int // Maximum number of slots per chamber session
-  isVerified        Boolean    @default(false)
+  isVerified        Boolean      @default(false)
   verificationDate  DateTime?
   verificationNotes String?
-  createdAt         DateTime   @default(now())
+  createdAt         DateTime     @default(now())
 
   doctor       Doctor        @relation(fields: [doctorId], references: [id])
   pharmacy     Pharmacy      @relation(fields: [pharmacyId], references: [id])
   appointments Appointment[]
 
   @@index([isVerified])
+}
+
+enum ScheduleType {
+  WEEKLY_RECURRING // Every Monday, Every Sunday, etc.
+  MONTHLY_SPECIFIC // 2nd and 4th Sunday, 1st and 3rd Friday, etc.
+  CUSTOM_DATES // Specific dates (future enhancement)
 }
 
 model Appointment {

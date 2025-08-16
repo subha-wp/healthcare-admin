@@ -81,8 +81,10 @@ export async function PUT(
 
     const body = await request.json();
     const {
-      weekNumber,
+      scheduleType,
       weekDay,
+      weekNumbers,
+      isRecurring,
       startTime,
       endTime,
       slotDuration,
@@ -102,8 +104,10 @@ export async function PUT(
     }
 
     const updateData: any = {};
-    if (weekNumber) updateData.weekNumber = weekNumber;
+    if (scheduleType) updateData.scheduleType = scheduleType;
     if (weekDay) updateData.weekDay = weekDay;
+    if (weekNumbers !== undefined) updateData.weekNumbers = weekNumbers;
+    if (isRecurring !== undefined) updateData.isRecurring = isRecurring;
     if (startTime) updateData.startTime = startTime;
     if (endTime) updateData.endTime = endTime;
     if (slotDuration) updateData.slotDuration = Number.parseInt(slotDuration);

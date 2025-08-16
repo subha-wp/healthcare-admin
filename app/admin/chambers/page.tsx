@@ -47,6 +47,8 @@ import {
   Star,
   TrendingUp,
   Activity,
+  Repeat,
+  CalendarDays,
 } from "lucide-react";
 import { ChamberDetailsModal } from "@/components/admin/chamber-details-modal";
 import { CreateChamberModal } from "@/components/admin/create-chamber-modal";
@@ -248,17 +250,53 @@ export default function ChambersPage() {
     });
   };
 
-  const getWeekDayDisplay = (weekNumber: string, weekDay: string) => {
-    const weekMap = {
-      FIRST: "1st",
-      SECOND: "2nd",
-      THIRD: "3rd",
-      FOURTH: "4th",
-      LAST: "Last",
-    };
-    return `${weekMap[weekNumber as keyof typeof weekMap]} ${
-      weekDay.charAt(0) + weekDay.slice(1).toLowerCase()
-    }`;
+  const getScheduleDisplay = (chamber: any) => {
+    if (!chamber.weekDay) return "Not configured";
+
+    const dayName =
+      chamber.weekDay.charAt(0) + chamber.weekDay.slice(1).toLowerCase();
+
+    if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
+      return `Every ${dayName}`;
+    } else if (
+      chamber.scheduleType === "MONTHLY_SPECIFIC" &&
+      chamber.weekNumbers?.length > 0
+    ) {
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      const weekDescriptions = chamber.weekNumbers.map(
+        (w: string) => weekMap[w as keyof typeof weekMap]
+      );
+      return `${weekDescriptions.join(" & ")} ${dayName}`;
+    } else if (chamber.weekNumber) {
+      // Backward compatibility for old format
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      return `${
+        weekMap[chamber.weekNumber as keyof typeof weekMap]
+      } ${dayName}`;
+    }
+
+    return "Custom schedule";
+  };
+
+  const getScheduleTypeDisplay = (chamber: any) => {
+    if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
+      return "Weekly";
+    } else if (chamber.scheduleType === "MONTHLY_SPECIFIC") {
+      return "Monthly";
+    }
+    return "Legacy";
   };
 
   const verifiedChambers = chambers.filter((c) => c.isVerified).length;
@@ -534,15 +572,15 @@ export default function ChambersPage() {
                           <TableCell>
                             <div>
                               <div className="font-medium">
-                                {getWeekDayDisplay(
-                                  chamber.weekNumber,
-                                  chamber.weekDay
-                                )}
+                                {getScheduleDisplay(chamber)}
                               </div>
                               <div className="text-sm text-slate-500">
                                 {chamber.startTime} - {chamber.endTime}
                               </div>
-                              <div className="text-xs text-slate-400">
+                              <div className="text-xs text-slate-400 flex items-center space-x-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {getScheduleTypeDisplay(chamber)}
+                                </Badge>
                                 {chamber.maxSlots} slots ×{" "}
                                 {chamber.slotDuration}min
                               </div>
@@ -746,12 +784,7 @@ export default function ChambersPage() {
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center justify-between">
                             <span className="text-slate-500">Schedule:</span>
-                            <span>
-                              {getWeekDayDisplay(
-                                chamber.weekNumber,
-                                chamber.weekDay
-                              )}
-                            </span>
+                            <span>{getScheduleDisplay(chamber)}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-slate-500">Time:</span>
@@ -813,12 +846,8 @@ export default function ChambersPage() {
                               {chamber.pharmacy.name}
                             </p>
                             <p className="text-slate-500 text-sm mb-2">
-                              Schedule:{" "}
-                              {getWeekDayDisplay(
-                                chamber.weekNumber,
-                                chamber.weekDay
-                              )}
-                              , {chamber.startTime} - {chamber.endTime}
+                              Schedule: {getScheduleDisplay(chamber)},{" "}
+                              {chamber.startTime} - {chamber.endTime}
                             </p>
                             <div className="flex items-center space-x-4 text-sm text-slate-500">
                               <span>Fees: ₹{chamber.fees}</span>
@@ -859,54 +888,125 @@ export default function ChambersPage() {
         <TabsContent value="schedule" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Chamber Schedule Overview</CardTitle>
+              <CardTitle>Enhanced Chamber Schedule Overview</CardTitle>
               <CardDescription>
-                Weekly schedule view of all active chambers
+                Weekly and monthly schedule view of all active chambers with new
+                scheduling patterns
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-7 gap-4">
-                {[
-                  "MONDAY",
-                  "TUESDAY",
-                  "WEDNESDAY",
-                  "THURSDAY",
-                  "FRIDAY",
-                  "SATURDAY",
-                  "SUNDAY",
-                ].map((day) => (
-                  <div key={day} className="space-y-2">
-                    <h3 className="font-semibold text-center p-2 bg-slate-100 rounded">
-                      {day.charAt(0) + day.slice(1).toLowerCase()}
-                    </h3>
-                    <div className="space-y-2 min-h-32">
-                      {chambers
-                        .filter(
-                          (c) => c.weekDay === day && c.isActive && c.isVerified
-                        )
-                        .map((chamber) => (
-                          <Card
-                            key={chamber.id}
-                            className="p-2 text-xs cursor-pointer hover:shadow-sm transition-shadow"
-                            onClick={() => setSelectedChamber(chamber)}
-                          >
-                            <div className="font-medium truncate">
+              <div className="space-y-6">
+                {/* Weekly Recurring Chambers */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-4 flex items-center space-x-2">
+                    <Repeat className="h-5 w-5 text-blue-600" />
+                    <span>Weekly Recurring Chambers</span>
+                  </h3>
+                  <div className="grid grid-cols-7 gap-4">
+                    {[
+                      "MONDAY",
+                      "TUESDAY",
+                      "WEDNESDAY",
+                      "THURSDAY",
+                      "FRIDAY",
+                      "SATURDAY",
+                      "SUNDAY",
+                    ].map((day) => (
+                      <div key={day} className="space-y-2">
+                        <h4 className="font-semibold text-center p-2 bg-blue-100 rounded">
+                          {day.charAt(0) + day.slice(1).toLowerCase()}
+                        </h4>
+                        <div className="space-y-2 min-h-32">
+                          {chambers
+                            .filter(
+                              (c) =>
+                                c.weekDay === day &&
+                                c.isActive &&
+                                c.isVerified &&
+                                (c.scheduleType === "WEEKLY_RECURRING" ||
+                                  c.isRecurring)
+                            )
+                            .map((chamber) => (
+                              <Card
+                                key={chamber.id}
+                                className="p-2 text-xs cursor-pointer hover:shadow-sm transition-shadow border-blue-200"
+                                onClick={() => setSelectedChamber(chamber)}
+                              >
+                                <div className="font-medium truncate">
+                                  {chamber.doctor.name}
+                                </div>
+                                <div className="text-slate-500 truncate">
+                                  {chamber.pharmacy.name}
+                                </div>
+                                <div className="text-slate-400">
+                                  {chamber.startTime}-{chamber.endTime}
+                                </div>
+                                <div className="text-slate-400">
+                                  ₹{chamber.fees}
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs mt-1"
+                                >
+                                  Weekly
+                                </Badge>
+                              </Card>
+                            ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Monthly Specific Chambers */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-4 flex items-center space-x-2">
+                    <CalendarDays className="h-5 w-5 text-purple-600" />
+                    <span>Monthly Specific Chambers</span>
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {chambers
+                      .filter(
+                        (c) =>
+                          c.scheduleType === "MONTHLY_SPECIFIC" &&
+                          c.isActive &&
+                          c.isVerified
+                      )
+                      .map((chamber) => (
+                        <Card
+                          key={chamber.id}
+                          className="p-4 cursor-pointer hover:shadow-md transition-shadow border-purple-200"
+                          onClick={() => setSelectedChamber(chamber)}
+                        >
+                          <div className="space-y-2">
+                            <div className="font-medium">
                               {chamber.doctor.name}
                             </div>
-                            <div className="text-slate-500 truncate">
+                            <div className="text-sm text-slate-600">
                               {chamber.pharmacy.name}
                             </div>
-                            <div className="text-slate-400">
-                              {chamber.startTime}-{chamber.endTime}
+                            <div className="text-sm font-medium text-purple-700">
+                              {getScheduleDisplay(chamber)}
                             </div>
-                            <div className="text-slate-400">
-                              ₹{chamber.fees}
+                            <div className="text-sm text-slate-500">
+                              {chamber.startTime} - {chamber.endTime}
                             </div>
-                          </Card>
-                        ))}
-                    </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium">
+                                ₹{chamber.fees}
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                Monthly
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              {chamber.weekNumbers?.length || 0} sessions/month
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                   </div>
-                ))}
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -23,6 +23,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Building2,
   User,
@@ -32,6 +33,8 @@ import {
   Save,
   Loader2,
   AlertTriangle,
+  Repeat,
+  CalendarDays,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -49,8 +52,10 @@ export function EditChamberModal({
   onChamberUpdated,
 }: EditChamberModalProps) {
   const [formData, setFormData] = useState({
-    weekNumber: "",
+    scheduleType: "",
     weekDay: "",
+    weekNumbers: [] as string[],
+    isRecurring: true,
     startTime: "",
     endTime: "",
     fees: "",
@@ -65,8 +70,10 @@ export function EditChamberModal({
   useEffect(() => {
     if (chamber) {
       setFormData({
-        weekNumber: chamber.weekNumber || "",
+        scheduleType: chamber.scheduleType || "WEEKLY_RECURRING",
         weekDay: chamber.weekDay || "",
+        weekNumbers: chamber.weekNumbers || [],
+        isRecurring: chamber.isRecurring ?? true,
         startTime: chamber.startTime || "",
         endTime: chamber.endTime || "",
         fees: chamber.fees?.toString() || "",
@@ -93,9 +100,18 @@ export function EditChamberModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.weekNumber)
-      newErrors.weekNumber = "Please select week number";
+    if (!formData.scheduleType)
+      newErrors.scheduleType = "Please select schedule type";
     if (!formData.weekDay) newErrors.weekDay = "Please select week day";
+
+    if (
+      formData.scheduleType === "MONTHLY_SPECIFIC" &&
+      formData.weekNumbers.length === 0
+    ) {
+      newErrors.weekNumbers =
+        "Please select at least one week number for monthly schedule";
+    }
+
     if (!formData.startTime) newErrors.startTime = "Start time is required";
     if (!formData.endTime) newErrors.endTime = "End time is required";
     if (!formData.fees) newErrors.fees = "Consultation fees are required";
@@ -142,8 +158,13 @@ export function EditChamberModal({
 
     try {
       const updateData = {
-        weekNumber: formData.weekNumber,
+        scheduleType: formData.scheduleType,
         weekDay: formData.weekDay,
+        weekNumbers:
+          formData.scheduleType === "MONTHLY_SPECIFIC"
+            ? formData.weekNumbers
+            : [],
+        isRecurring: formData.scheduleType === "WEEKLY_RECURRING",
         startTime: formData.startTime,
         endTime: formData.endTime,
         slotDuration: Number.parseInt(formData.slotDuration),
@@ -182,8 +203,10 @@ export function EditChamberModal({
   const resetForm = () => {
     if (chamber) {
       setFormData({
-        weekNumber: chamber.weekNumber || "",
+        scheduleType: chamber.scheduleType || "WEEKLY_RECURRING",
         weekDay: chamber.weekDay || "",
+        weekNumbers: chamber.weekNumbers || [],
+        isRecurring: chamber.isRecurring ?? true,
         startTime: chamber.startTime || "",
         endTime: chamber.endTime || "",
         fees: chamber.fees?.toString() || "",
@@ -199,11 +222,48 @@ export function EditChamberModal({
     onClose();
   };
 
+  const handleWeekNumberToggle = (weekNumber: string, checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      weekNumbers: checked
+        ? [...prev.weekNumbers, weekNumber]
+        : prev.weekNumbers.filter((w) => w !== weekNumber),
+    }));
+  };
+
+  const getScheduleDescription = () => {
+    if (!formData.scheduleType || !formData.weekDay) return "";
+
+    const dayName =
+      formData.weekDay.charAt(0) + formData.weekDay.slice(1).toLowerCase();
+
+    if (formData.scheduleType === "WEEKLY_RECURRING") {
+      return `Every ${dayName}`;
+    } else if (
+      formData.scheduleType === "MONTHLY_SPECIFIC" &&
+      formData.weekNumbers.length > 0
+    ) {
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      const weekDescriptions = formData.weekNumbers.map(
+        (w) => weekMap[w as keyof typeof weekMap]
+      );
+      return `${weekDescriptions.join(" and ")} ${dayName} of every month`;
+    }
+
+    return "";
+  };
+
   if (!chamber) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Building2 className="h-5 w-5" />
@@ -213,7 +273,8 @@ export function EditChamberModal({
             </Badge>
           </DialogTitle>
           <DialogDescription>
-            Update chamber schedule, pricing, and status
+            Update chamber schedule, pricing, and status with enhanced
+            scheduling options
           </DialogDescription>
         </DialogHeader>
 
@@ -245,7 +306,7 @@ export function EditChamberModal({
             </CardContent>
           </Card>
 
-          {/* Schedule Configuration */}
+          {/* Enhanced Schedule Configuration */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center space-x-2">
@@ -253,64 +314,148 @@ export function EditChamberModal({
                 <span>Schedule Configuration</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Schedule Type Selection */}
+              <div>
+                <Label htmlFor="scheduleType">Schedule Type *</Label>
+                <Select
+                  value={formData.scheduleType}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, scheduleType: value })
+                  }
+                >
+                  <SelectTrigger
+                    className={errors.scheduleType ? "border-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Choose schedule pattern" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="WEEKLY_RECURRING">
+                      <div className="flex items-center space-x-2">
+                        <Repeat className="h-4 w-4" />
+                        <div>
+                          <div className="font-medium">Weekly Recurring</div>
+                          <div className="text-xs text-slate-500">
+                            Every Monday, Every Sunday, etc.
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="MONTHLY_SPECIFIC">
+                      <div className="flex items-center space-x-2">
+                        <CalendarDays className="h-4 w-4" />
+                        <div>
+                          <div className="font-medium">Monthly Specific</div>
+                          <div className="text-xs text-slate-500">
+                            2nd & 4th Sunday, 1st & 3rd Friday, etc.
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.scheduleType && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {errors.scheduleType}
+                  </p>
+                )}
+              </div>
+
+              {/* Day Selection */}
+              <div>
+                <Label htmlFor="weekDay">Day of Week *</Label>
+                <Select
+                  value={formData.weekDay}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, weekDay: value })
+                  }
+                >
+                  <SelectTrigger
+                    className={errors.weekDay ? "border-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Select day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MONDAY">Monday</SelectItem>
+                    <SelectItem value="TUESDAY">Tuesday</SelectItem>
+                    <SelectItem value="WEDNESDAY">Wednesday</SelectItem>
+                    <SelectItem value="THURSDAY">Thursday</SelectItem>
+                    <SelectItem value="FRIDAY">Friday</SelectItem>
+                    <SelectItem value="SATURDAY">Saturday</SelectItem>
+                    <SelectItem value="SUNDAY">Sunday</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.weekDay && (
+                  <p className="text-sm text-red-500 mt-1">{errors.weekDay}</p>
+                )}
+              </div>
+
+              {/* Week Numbers Selection for Monthly Specific */}
+              {formData.scheduleType === "MONTHLY_SPECIFIC" && (
+                <div>
+                  <Label className="text-sm font-medium mb-3 block">
+                    Select Week Numbers *
+                  </Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { value: "FIRST", label: "1st Week" },
+                      { value: "SECOND", label: "2nd Week" },
+                      { value: "THIRD", label: "3rd Week" },
+                      { value: "FOURTH", label: "4th Week" },
+                      { value: "LAST", label: "Last Week" },
+                    ].map((week) => (
+                      <div
+                        key={week.value}
+                        className="flex items-center space-x-2"
+                      >
+                        <Checkbox
+                          id={week.value}
+                          checked={formData.weekNumbers.includes(week.value)}
+                          onCheckedChange={(checked) =>
+                            handleWeekNumberToggle(
+                              week.value,
+                              checked as boolean
+                            )
+                          }
+                        />
+                        <Label htmlFor={week.value} className="text-sm">
+                          {week.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  {errors.weekNumbers && (
+                    <p className="text-sm text-red-500 mt-1">
+                      {errors.weekNumbers}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Schedule Preview */}
+              {getScheduleDescription() && (
+                <Card className="bg-indigo-50 border-indigo-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Calendar className="h-4 w-4 text-indigo-600" />
+                      <span className="font-medium text-indigo-800">
+                        Updated Schedule
+                      </span>
+                    </div>
+                    <p className="text-indigo-700 font-medium">
+                      {getScheduleDescription()}
+                    </p>
+                    {formData.startTime && formData.endTime && (
+                      <p className="text-sm text-indigo-600 mt-1">
+                        {formData.startTime} - {formData.endTime}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Time Configuration */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="weekNumber">Week of Month *</Label>
-                  <Select
-                    value={formData.weekNumber}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, weekNumber: value })
-                    }
-                  >
-                    <SelectTrigger
-                      className={errors.weekNumber ? "border-red-500" : ""}
-                    >
-                      <SelectValue placeholder="Select week" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="FIRST">1st Week</SelectItem>
-                      <SelectItem value="SECOND">2nd Week</SelectItem>
-                      <SelectItem value="THIRD">3rd Week</SelectItem>
-                      <SelectItem value="FOURTH">4th Week</SelectItem>
-                      <SelectItem value="LAST">Last Week</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.weekNumber && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.weekNumber}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="weekDay">Day of Week *</Label>
-                  <Select
-                    value={formData.weekDay}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, weekDay: value })
-                    }
-                  >
-                    <SelectTrigger
-                      className={errors.weekDay ? "border-red-500" : ""}
-                    >
-                      <SelectValue placeholder="Select day" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MONDAY">Monday</SelectItem>
-                      <SelectItem value="TUESDAY">Tuesday</SelectItem>
-                      <SelectItem value="WEDNESDAY">Wednesday</SelectItem>
-                      <SelectItem value="THURSDAY">Thursday</SelectItem>
-                      <SelectItem value="FRIDAY">Friday</SelectItem>
-                      <SelectItem value="SATURDAY">Saturday</SelectItem>
-                      <SelectItem value="SUNDAY">Sunday</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.weekDay && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.weekDay}
-                    </p>
-                  )}
-                </div>
                 <div>
                   <Label htmlFor="startTime">Start Time *</Label>
                   <Input
@@ -421,14 +566,14 @@ export function EditChamberModal({
                 <Label htmlFor="isActive">Chamber is active</Label>
               </div>
 
-              {/* Capacity Calculation */}
+              {/* Enhanced Capacity Calculation */}
               {calculateMaxSlots() > 0 && (
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
                     <div className="flex items-center space-x-2 mb-2">
                       <Users className="h-4 w-4 text-blue-600" />
                       <span className="font-medium text-blue-800">
-                        Updated Capacity
+                        Updated Capacity & Revenue
                       </span>
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
@@ -441,7 +586,7 @@ export function EditChamberModal({
                       </div>
                       <div>
                         <span className="text-blue-700">
-                          Potential Revenue:
+                          Revenue per Session:
                         </span>
                         <br />
                         <span className="font-medium">
@@ -462,6 +607,28 @@ export function EditChamberModal({
                         </Badge>
                       </div>
                     </div>
+
+                    {/* Monthly Revenue for Monthly Specific */}
+                    {formData.scheduleType === "MONTHLY_SPECIFIC" &&
+                      formData.weekNumbers.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-blue-300">
+                          <span className="text-blue-700">
+                            Monthly Revenue Potential:
+                          </span>
+                          <br />
+                          <span className="font-medium text-lg">
+                            ₹
+                            {(
+                              calculateMaxSlots() *
+                              Number.parseFloat(formData.fees || "0") *
+                              formData.weekNumbers.length
+                            ).toLocaleString()}
+                          </span>
+                          <span className="text-xs text-blue-600 ml-1">
+                            ({formData.weekNumbers.length} sessions/month)
+                          </span>
+                        </div>
+                      )}
                   </CardContent>
                 </Card>
               )}
@@ -511,4 +678,41 @@ export function EditChamberModal({
       </DialogContent>
     </Dialog>
   );
+
+  function handleWeekNumberToggle(weekNumber: string, checked: boolean) {
+    setFormData((prev) => ({
+      ...prev,
+      weekNumbers: checked
+        ? [...prev.weekNumbers, weekNumber]
+        : prev.weekNumbers.filter((w) => w !== weekNumber),
+    }));
+  }
+
+  function getScheduleDescription() {
+    if (!formData.scheduleType || !formData.weekDay) return "";
+
+    const dayName =
+      formData.weekDay.charAt(0) + formData.weekDay.slice(1).toLowerCase();
+
+    if (formData.scheduleType === "WEEKLY_RECURRING") {
+      return `Every ${dayName}`;
+    } else if (
+      formData.scheduleType === "MONTHLY_SPECIFIC" &&
+      formData.weekNumbers.length > 0
+    ) {
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      const weekDescriptions = formData.weekNumbers.map(
+        (w) => weekMap[w as keyof typeof weekMap]
+      );
+      return `${weekDescriptions.join(" and ")} ${dayName} of every month`;
+    }
+
+    return "";
+  }
 }

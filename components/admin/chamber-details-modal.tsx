@@ -51,17 +51,53 @@ export function ChamberDetailsModal({
   onEdit,
   onDelete,
 }: ChamberDetailsModalProps) {
-  const getWeekDayDisplay = (weekNumber: string, weekDay: string) => {
-    const weekMap = {
-      FIRST: "1st",
-      SECOND: "2nd",
-      THIRD: "3rd",
-      FOURTH: "4th",
-      LAST: "Last",
-    };
-    return `${weekMap[weekNumber as keyof typeof weekMap]} ${
-      weekDay.charAt(0) + weekDay.slice(1).toLowerCase()
-    }`;
+  const getScheduleDisplay = (chamber: any) => {
+    if (!chamber.weekDay) return "Not configured";
+
+    const dayName =
+      chamber.weekDay.charAt(0) + chamber.weekDay.slice(1).toLowerCase();
+
+    if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
+      return `Every ${dayName}`;
+    } else if (
+      chamber.scheduleType === "MONTHLY_SPECIFIC" &&
+      chamber.weekNumbers?.length > 0
+    ) {
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      const weekDescriptions = chamber.weekNumbers.map(
+        (w: string) => weekMap[w as keyof typeof weekMap]
+      );
+      return `${weekDescriptions.join(" & ")} ${dayName} of every month`;
+    } else if (chamber.weekNumber) {
+      // Backward compatibility
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      return `${
+        weekMap[chamber.weekNumber as keyof typeof weekMap]
+      } ${dayName}`;
+    }
+
+    return "Custom schedule";
+  };
+
+  const getScheduleTypeDisplay = (chamber: any) => {
+    if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
+      return "Weekly Recurring";
+    } else if (chamber.scheduleType === "MONTHLY_SPECIFIC") {
+      return "Monthly Specific";
+    }
+    return "Legacy Format";
   };
 
   const getStatusBadge = (status: string) => {
@@ -190,7 +226,10 @@ export function ChamberDetailsModal({
                     <div>
                       <span className="text-sm text-slate-500">Schedule:</span>
                       <p className="font-medium">
-                        {getWeekDayDisplay(chamber.weekNumber, chamber.weekDay)}
+                        {getScheduleDisplay(chamber)}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {getScheduleTypeDisplay(chamber)}
                       </p>
                     </div>
                   </div>
@@ -534,7 +573,7 @@ export function ChamberDetailsModal({
                 <div className="bg-slate-50 p-3 rounded-lg">
                   <div className="text-center">
                     <div className="font-medium text-lg">
-                      {getWeekDayDisplay(chamber.weekNumber, chamber.weekDay)}
+                      {getScheduleDisplay(chamber)}
                     </div>
                     <div className="text-sm text-slate-600">
                       {chamber.startTime} - {chamber.endTime}
@@ -542,6 +581,15 @@ export function ChamberDetailsModal({
                     <div className="text-xs text-slate-500 mt-1">
                       {chamber.maxSlots} slots × {chamber.slotDuration} minutes
                     </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      {getScheduleTypeDisplay(chamber)}
+                    </div>
+                    {chamber.scheduleType === "MONTHLY_SPECIFIC" &&
+                      chamber.weekNumbers?.length > 0 && (
+                        <div className="text-xs text-purple-600 mt-1">
+                          {chamber.weekNumbers.length} sessions per month
+                        </div>
+                      )}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
