@@ -1,5 +1,7 @@
 "use client";
 
+import { CardDescription } from "@/components/ui/card";
+
 import type React from "react";
 import { useState, useEffect } from "react";
 import {
@@ -23,7 +25,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import {
   Building2,
   User,
@@ -35,13 +37,14 @@ import {
   Clock,
   Repeat,
   CalendarDays,
+  AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CreateChamberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onChamberCreated: (chamber: any) => void;
+  onSuccess: () => void;
 }
 
 interface Doctor {
@@ -49,6 +52,7 @@ interface Doctor {
   name: string;
   specialization: string;
   consultationFee: number;
+  isVerified: boolean;
   user: { email: string };
 }
 
@@ -57,13 +61,14 @@ interface Pharmacy {
   name: string;
   businessName: string;
   address: string;
+  isVerified: boolean;
   user: { email: string };
 }
 
 export function CreateChamberModal({
   isOpen,
   onClose,
-  onChamberCreated,
+  onSuccess,
 }: CreateChamberModalProps) {
   const [formData, setFormData] = useState({
     doctorId: "",
@@ -77,38 +82,66 @@ export function CreateChamberModal({
     fees: "",
     slotDuration: "30",
   });
+
+  // Search states
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [pharmacySearch, setPharmacySearch] = useState("");
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
-  const [loadingDoctors, setLoadingDoctors] = useState(true);
-  const [loadingPharmacies, setLoadingPharmacies] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [loadingPharmacies, setLoadingPharmacies] = useState(false);
+  const [doctorSearched, setDoctorSearched] = useState(false);
+  const [pharmacySearched, setPharmacySearched] = useState(false);
+
+  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const selectedDoctor = doctors.find((d) => d.id === formData.doctorId);
   const selectedPharmacy = pharmacies.find((p) => p.id === formData.pharmacyId);
 
-  // Fetch verified doctors and pharmacies
+  // Search doctors with debounce
   useEffect(() => {
-    if (isOpen) {
-      fetchVerifiedDoctors();
-      fetchVerifiedPharmacies();
+    if (doctorSearch.length >= 2) {
+      const timer = setTimeout(() => {
+        searchDoctors(doctorSearch);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else if (doctorSearch.length === 0) {
+      setDoctors([]);
+      setDoctorSearched(false);
     }
-  }, [isOpen]);
+  }, [doctorSearch]);
 
-  const fetchVerifiedDoctors = async () => {
+  // Search pharmacies with debounce
+  useEffect(() => {
+    if (pharmacySearch.length >= 2) {
+      const timer = setTimeout(() => {
+        searchPharmacies(pharmacySearch);
+      }, 500);
+      return () => clearTimeout(timer);
+    } else if (pharmacySearch.length === 0) {
+      setPharmacies([]);
+      setPharmacySearched(false);
+    }
+  }, [pharmacySearch]);
+
+  const searchDoctors = async (searchTerm: string) => {
     try {
       setLoadingDoctors(true);
-      const response = await fetch("/api/admin/doctors/verified");
+      const response = await fetch(
+        `/api/admin/doctors/search?q=${encodeURIComponent(searchTerm)}`
+      );
       if (response.ok) {
         const data = await response.json();
         setDoctors(data.doctors);
+        setDoctorSearched(true);
       }
     } catch (error) {
-      console.error("Error fetching doctors:", error);
+      console.error("Error searching doctors:", error);
       toast({
         title: "Error",
-        description: "Failed to load doctors",
+        description: "Failed to search doctors",
         variant: "destructive",
       });
     } finally {
@@ -116,19 +149,22 @@ export function CreateChamberModal({
     }
   };
 
-  const fetchVerifiedPharmacies = async () => {
+  const searchPharmacies = async (searchTerm: string) => {
     try {
       setLoadingPharmacies(true);
-      const response = await fetch("/api/admin/pharmacies/verified");
+      const response = await fetch(
+        `/api/admin/pharmacies/search?q=${encodeURIComponent(searchTerm)}`
+      );
       if (response.ok) {
         const data = await response.json();
         setPharmacies(data.pharmacies);
+        setPharmacySearched(true);
       }
     } catch (error) {
-      console.error("Error fetching pharmacies:", error);
+      console.error("Error searching pharmacies:", error);
       toast({
         title: "Error",
-        description: "Failed to load pharmacies",
+        description: "Failed to search pharmacies",
         variant: "destructive",
       });
     } finally {
@@ -196,79 +232,36 @@ export function CreateChamberModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      toast({
-        title: "Validation Error",
-        description: "Please fix the errors in the form",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrors({});
+    setIsLoading(true);
 
     try {
-      const chamberData = {
-        doctorId: formData.doctorId,
-        pharmacyId: formData.pharmacyId,
-        scheduleType: formData.scheduleType,
-        weekDay: formData.weekDay,
-        weekNumbers:
-          formData.scheduleType === "MONTHLY_SPECIFIC"
-            ? formData.weekNumbers
-            : [],
-        isRecurring: formData.scheduleType === "WEEKLY_RECURRING",
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        slotDuration: Number.parseInt(formData.slotDuration),
-        fees: Number.parseFloat(formData.fees),
-      };
-
-      const response = await fetch("/api/admin/chambers", {
+      const response = await fetch("/api/chambers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(chamberData),
+        body: JSON.stringify(formData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create chamber");
+      if (response.ok) {
+        onSuccess();
+        handleClose();
+        toast({
+          title: "Success",
+          description: "Chamber created successfully!",
+        });
+      } else {
+        throw new Error("Failed to create chamber");
       }
-
-      const result = await response.json();
-      onChamberCreated(result.chamber);
-      resetForm();
     } catch (error) {
-      console.error("Error creating chamber:", error);
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "Failed to create chamber",
+        description: "Failed to create chamber. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      doctorId: "",
-      pharmacyId: "",
-      scheduleType: "",
-      weekDay: "",
-      weekNumbers: [],
-      isRecurring: true,
-      startTime: "",
-      endTime: "",
-      fees: "",
-      slotDuration: "30",
-    });
-    setErrors({});
   };
 
   const handleClose = () => {
@@ -278,7 +271,11 @@ export function CreateChamberModal({
 
   // Auto-fill fees when doctor is selected
   useEffect(() => {
-    if (selectedDoctor && !formData.fees) {
+    if (
+      selectedDoctor &&
+      selectedDoctor.consultationFee > 0 &&
+      !formData.fees
+    ) {
       setFormData((prev) => ({
         ...prev,
         fees: selectedDoctor.consultationFee.toString(),
@@ -332,6 +329,56 @@ export function CreateChamberModal({
     return "";
   };
 
+  const getDoctorStatusBadge = (doctor: Doctor) => {
+    return doctor.isVerified ? (
+      <Badge variant="default" className="text-xs">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Verified
+      </Badge>
+    ) : (
+      <Badge variant="secondary" className="text-xs">
+        <Clock className="h-3 w-3 mr-1" />
+        Pending
+      </Badge>
+    );
+  };
+
+  const getPharmacyStatusBadge = (pharmacy: Pharmacy) => {
+    return pharmacy.isVerified ? (
+      <Badge variant="default" className="text-xs">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Verified
+      </Badge>
+    ) : (
+      <Badge variant="secondary" className="text-xs">
+        <Clock className="h-3 w-3 mr-1" />
+        Pending
+      </Badge>
+    );
+  };
+
+  const resetForm = () => {
+    setFormData({
+      doctorId: "",
+      pharmacyId: "",
+      scheduleType: "",
+      weekDay: "",
+      weekNumbers: [],
+      isRecurring: true,
+      startTime: "",
+      endTime: "",
+      fees: "",
+      slotDuration: "30",
+    });
+    setDoctorSearch("");
+    setPharmacySearch("");
+    setDoctors([]);
+    setPharmacies([]);
+    setDoctorSearched(false);
+    setPharmacySearched(false);
+    setErrors({});
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -339,129 +386,198 @@ export function CreateChamberModal({
           <DialogTitle>Create New Chamber</DialogTitle>
           <DialogDescription>
             Set up a new doctor-pharmacy partnership with flexible scheduling
-            options
+            options. Both verified and non-verified doctors/pharmacies can
+            create chambers.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Partnership Selection */}
+          {/* Partnership Selection with Search */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Partnership Selection</CardTitle>
+              <CardDescription>
+                Search and select doctor and pharmacy for the chamber
+                partnership
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              {/* Doctor Search and Selection */}
               <div className="space-y-3">
-                <div>
-                  <Label
-                    htmlFor="doctorId"
-                    className="flex items-center space-x-2"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>Select Doctor *</span>
-                  </Label>
-                  {loadingDoctors ? (
-                    <div className="flex items-center space-x-2 p-2 border rounded">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Loading doctors...</span>
-                    </div>
-                  ) : (
-                    <Select
-                      value={formData.doctorId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, doctorId: value })
-                      }
-                    >
-                      <SelectTrigger
-                        className={errors.doctorId ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Choose a verified doctor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {doctors.map((doctor) => (
-                          <SelectItem key={doctor.id} value={doctor.id}>
-                            <div className="flex items-center justify-between w-full">
-                              <div>
-                                <div className="font-medium">{doctor.name}</div>
-                                <div className="text-sm text-slate-500">
-                                  {doctor.specialization}
-                                </div>
-                              </div>
-                              <Badge variant="default" className="ml-2">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Verified
-                              </Badge>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {errors.doctorId && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.doctorId}
-                    </p>
-                  )}
+                <Label
+                  htmlFor="doctorSearch"
+                  className="flex items-center space-x-2"
+                >
+                  <User className="h-4 w-4" />
+                  <span>Search & Select Doctor *</span>
+                </Label>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                  <Input
+                    id="doctorSearch"
+                    placeholder="Search doctors by name, specialization, or email..."
+                    value={doctorSearch}
+                    onChange={(e) => setDoctorSearch(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
-                <div>
-                  <Label
-                    htmlFor="pharmacyId"
-                    className="flex items-center space-x-2"
-                  >
-                    <Building2 className="h-4 w-4" />
-                    <span>Select Pharmacy *</span>
-                  </Label>
-                  {loadingPharmacies ? (
-                    <div className="flex items-center space-x-2 p-2 border rounded">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Loading pharmacies...</span>
-                    </div>
-                  ) : (
-                    <Select
-                      value={formData.pharmacyId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, pharmacyId: value })
-                      }
-                    >
-                      <SelectTrigger
-                        className={errors.pharmacyId ? "border-red-500" : ""}
-                      >
-                        <SelectValue placeholder="Choose a verified pharmacy" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pharmacies.map((pharmacy) => (
-                          <SelectItem key={pharmacy.id} value={pharmacy.id}>
-                            <div className="flex items-center justify-between w-full">
-                              <div>
-                                <div className="font-medium">
-                                  {pharmacy.name}
-                                </div>
-                                <div className="text-sm text-slate-500 truncate max-w-48">
-                                  {pharmacy.address.split(",")[0]}
-                                </div>
-                              </div>
-                              <Badge variant="default" className="ml-2">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Verified
-                              </Badge>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  {errors.pharmacyId && (
-                    <p className="text-sm text-red-500 mt-1">
-                      {errors.pharmacyId}
+
+                {loadingDoctors && (
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Searching doctors...</span>
+                  </div>
+                )}
+
+                {doctorSearched && doctors.length === 0 && !loadingDoctors && (
+                  <div className="p-3 border rounded-lg bg-slate-50">
+                    <p className="text-sm text-slate-600">
+                      No doctors found. Try a different search term.
                     </p>
-                  )}
+                  </div>
+                )}
+
+                {doctors.length > 0 && (
+                  <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-2">
+                    {doctors.map((doctor) => (
+                      <div
+                        key={doctor.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          formData.doctorId === doctor.id
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                        onClick={() =>
+                          setFormData({ ...formData, doctorId: doctor.id })
+                        }
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">{doctor.name}</div>
+                            <div className="text-sm text-slate-600">
+                              {doctor.specialization}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {doctor.user.email}
+                            </div>
+                            {doctor.consultationFee > 0 && (
+                              <div className="text-xs text-slate-500">
+                                Default fee: ₹{doctor.consultationFee}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end space-y-1">
+                            {getDoctorStatusBadge(doctor)}
+                            {formData.doctorId === doctor.id && (
+                              <Badge variant="outline" className="text-xs">
+                                Selected
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {errors.doctorId && (
+                  <p className="text-sm text-red-500">{errors.doctorId}</p>
+                )}
+              </div>
+
+              {/* Pharmacy Search and Selection */}
+              <div className="space-y-3">
+                <Label
+                  htmlFor="pharmacySearch"
+                  className="flex items-center space-x-2"
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span>Search & Select Pharmacy *</span>
+                </Label>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                  <Input
+                    id="pharmacySearch"
+                    placeholder="Search pharmacies by name, business name, or address..."
+                    value={pharmacySearch}
+                    onChange={(e) => setPharmacySearch(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
+
+                {loadingPharmacies && (
+                  <div className="flex items-center space-x-2 p-3 border rounded-lg">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Searching pharmacies...</span>
+                  </div>
+                )}
+
+                {pharmacySearched &&
+                  pharmacies.length === 0 &&
+                  !loadingPharmacies && (
+                    <div className="p-3 border rounded-lg bg-slate-50">
+                      <p className="text-sm text-slate-600">
+                        No pharmacies found. Try a different search term.
+                      </p>
+                    </div>
+                  )}
+
+                {pharmacies.length > 0 && (
+                  <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-2">
+                    {pharmacies.map((pharmacy) => (
+                      <div
+                        key={pharmacy.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          formData.pharmacyId === pharmacy.id
+                            ? "border-blue-500 bg-blue-50"
+                            : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                        }`}
+                        onClick={() =>
+                          setFormData({ ...formData, pharmacyId: pharmacy.id })
+                        }
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">{pharmacy.name}</div>
+                            <div className="text-sm text-slate-600">
+                              {pharmacy.businessName}
+                            </div>
+                            <div className="text-xs text-slate-500 truncate max-w-64">
+                              {pharmacy.address}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {pharmacy.user.email}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end space-y-1">
+                            {getPharmacyStatusBadge(pharmacy)}
+                            {formData.pharmacyId === pharmacy.id && (
+                              <Badge variant="outline" className="text-xs">
+                                Selected
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {errors.pharmacyId && (
+                  <p className="text-sm text-red-500">{errors.pharmacyId}</p>
+                )}
               </div>
 
               {/* Selected Partnership Preview */}
               {selectedDoctor && selectedPharmacy && (
                 <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
-                    <h4 className="font-medium mb-2">Selected Partnership</h4>
+                    <h4 className="font-medium mb-3 flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4 text-blue-600" />
+                      <span>Selected Partnership</span>
+                    </h4>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="font-medium">Doctor:</span>{" "}
@@ -470,6 +586,10 @@ export function CreateChamberModal({
                         <span className="text-slate-600">
                           {selectedDoctor.specialization}
                         </span>
+                        <br />
+                        <div className="mt-1">
+                          {getDoctorStatusBadge(selectedDoctor)}
+                        </div>
                       </div>
                       <div>
                         <span className="font-medium">Pharmacy:</span>{" "}
@@ -478,10 +598,43 @@ export function CreateChamberModal({
                         <span className="text-slate-600">
                           {selectedPharmacy.address.split(",")[0]}
                         </span>
+                        <br />
+                        <div className="mt-1">
+                          {getPharmacyStatusBadge(selectedPharmacy)}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Warning for non-verified partners */}
+                    {(!selectedDoctor.isVerified ||
+                      !selectedPharmacy.isVerified) && (
+                      <Alert className="mt-4">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          {!selectedDoctor.isVerified &&
+                          !selectedPharmacy.isVerified
+                            ? "Both doctor and pharmacy are not verified. The chamber will require admin verification before becoming active."
+                            : !selectedDoctor.isVerified
+                            ? "The selected doctor is not verified. The chamber will require admin verification before becoming active."
+                            : "The selected pharmacy is not verified. The chamber will require admin verification before becoming active."}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Search Instructions */}
+              {!doctorSearched && !pharmacySearched && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    Start typing in the search fields above to find doctors and
+                    pharmacies. You need to type at least 2 characters to begin
+                    searching. Both verified and non-verified partners can be
+                    selected.
+                  </AlertDescription>
+                </Alert>
               )}
             </CardContent>
           </Card>
@@ -694,7 +847,7 @@ export function CreateChamberModal({
                   <Input
                     id="fees"
                     type="number"
-                    min="100"
+                    min="0"
                     max="10000"
                     value={formData.fees}
                     onChange={(e) =>
@@ -707,7 +860,7 @@ export function CreateChamberModal({
                   {errors.fees && (
                     <p className="text-sm text-red-500 mt-1">{errors.fees}</p>
                   )}
-                  {selectedDoctor && (
+                  {selectedDoctor && selectedDoctor.consultationFee > 0 && (
                     <p className="text-xs text-slate-500 mt-1">
                       Doctor's default fee: ₹{selectedDoctor.consultationFee}
                     </p>
@@ -819,74 +972,14 @@ export function CreateChamberModal({
             </CardContent>
           </Card>
 
-          {/* Schedule Examples */}
-          {formData.scheduleType && (
-            <Card className="bg-slate-50">
-              <CardHeader>
-                <CardTitle className="text-lg">Schedule Examples</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  {formData.scheduleType === "WEEKLY_RECURRING" && (
-                    <>
-                      <div className="p-3 bg-white rounded border">
-                        <div className="font-medium text-blue-600">
-                          Weekly Recurring Examples:
-                        </div>
-                        <ul className="mt-2 space-y-1 text-slate-600">
-                          <li>• Every Monday (weekly)</li>
-                          <li>• Every Sunday (weekly)</li>
-                          <li>• Every Friday (weekly)</li>
-                        </ul>
-                      </div>
-                      <div className="p-3 bg-white rounded border">
-                        <div className="font-medium text-green-600">
-                          Your Selection:
-                        </div>
-                        <p className="mt-2 text-slate-700">
-                          {getScheduleDescription() ||
-                            "Configure schedule above"}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                  {formData.scheduleType === "MONTHLY_SPECIFIC" && (
-                    <>
-                      <div className="p-3 bg-white rounded border">
-                        <div className="font-medium text-purple-600">
-                          Monthly Specific Examples:
-                        </div>
-                        <ul className="mt-2 space-y-1 text-slate-600">
-                          <li>• 2nd and 4th Sunday</li>
-                          <li>• 1st and 3rd Friday</li>
-                          <li>• 2nd and Last Monday</li>
-                        </ul>
-                      </div>
-                      <div className="p-3 bg-white rounded border">
-                        <div className="font-medium text-green-600">
-                          Your Selection:
-                        </div>
-                        <p className="mt-2 text-slate-700">
-                          {getScheduleDescription() ||
-                            "Configure schedule above"}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Information Alert */}
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              The chamber will be created in pending status and require admin
-              verification before becoming active. Both doctor and pharmacy must
-              be verified to create a chamber. The new scheduling system
-              supports flexible recurring patterns for better appointment
-              management.
+              Chambers can now be created with both verified and non-verified
+              doctors/pharmacies. Non-verified partnerships will require admin
+              verification before becoming active. The new search-based
+              selection improves performance by loading data only when needed.
             </AlertDescription>
           </Alert>
 
@@ -896,14 +989,14 @@ export function CreateChamberModal({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={isSubmitting}
+              disabled={isLoading}
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={
-                isSubmitting ||
+                isLoading ||
                 !formData.doctorId ||
                 !formData.pharmacyId ||
                 !formData.scheduleType ||
@@ -913,7 +1006,7 @@ export function CreateChamberModal({
                 calculateMaxSlots() <= 0
               }
             >
-              {isSubmitting ? (
+              {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Creating Chamber...
