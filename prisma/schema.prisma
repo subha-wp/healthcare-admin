@@ -145,7 +145,7 @@ model Chamber {
   doctorId          String
   pharmacyId        String
   scheduleType      ScheduleType
-  weekDay           WeekDay?
+  weekDays          WeekDay[] // Changed to array for multiple days
   weekNumbers       WeekNumber[] // For multiple week numbers like [SECOND, FOURTH]
   isRecurring       Boolean      @default(true) // Weekly recurring vs specific weeks
   startTime         String // Format: "HH:mm"
@@ -168,6 +168,7 @@ model Chamber {
 
 enum ScheduleType {
   WEEKLY_RECURRING // Every Monday, Every Sunday, etc.
+  MULTI_WEEKLY // Multiple days per week like Sunday & Friday
   MONTHLY_SPECIFIC // 2nd and 4th Sunday, 1st and 3rd Friday, etc.
   CUSTOM_DATES // Specific dates (future enhancement)
 }

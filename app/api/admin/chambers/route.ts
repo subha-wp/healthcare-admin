@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       doctorId,
       pharmacyId,
       scheduleType,
-      weekDay,
+      weekDays,
       weekNumbers,
       isRecurring,
       startTime,
@@ -139,7 +139,8 @@ export async function POST(request: NextRequest) {
       !doctorId ||
       !pharmacyId ||
       !scheduleType ||
-      !weekDay ||
+      !weekDays ||
+      weekDays.length === 0 ||
       !startTime ||
       !endTime ||
       !slotDuration ||
@@ -147,6 +148,14 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Validate schedule type specific requirements
+    if (scheduleType === "WEEKLY_RECURRING" && weekDays.length > 1) {
+      return NextResponse.json(
+        { error: "Weekly recurring schedule allows only one day" },
         { status: 400 }
       );
     }
@@ -175,46 +184,67 @@ export async function POST(request: NextRequest) {
     }
 
     // Enhanced conflict checking based on schedule type
-    if (scheduleType === "WEEKLY_RECURRING") {
-      const existingChamber = await prisma.chamber.findFirst({
-        where: {
-          doctorId,
-          scheduleType: "WEEKLY_RECURRING",
-          weekDay,
-          isActive: true,
-        },
-      });
-
-      if (existingChamber) {
-        return NextResponse.json(
-          {
-            error: `Doctor already has a weekly recurring chamber on ${weekDay.toLowerCase()}`,
+    if (
+      scheduleType === "WEEKLY_RECURRING" ||
+      scheduleType === "MULTI_WEEKLY"
+    ) {
+      // Check for conflicts with existing chambers on the same days
+      for (const weekDay of weekDays) {
+        const existingChamber = await prisma.chamber.findFirst({
+          where: {
+            doctorId,
+            OR: [
+              {
+                scheduleType: { in: ["WEEKLY_RECURRING", "MULTI_WEEKLY"] },
+                weekDays: { has: weekDay },
+                isActive: true,
+              },
+              // Backward compatibility check
+              {
+                scheduleType: "WEEKLY_RECURRING",
+                weekDay: weekDay,
+                isActive: true,
+              },
+            ],
           },
-          { status: 400 }
-        );
-      }
-    } else if (scheduleType === "MONTHLY_SPECIFIC") {
-      // Check for overlapping week numbers on the same day
-      const existingChambers = await prisma.chamber.findMany({
-        where: {
-          doctorId,
-          scheduleType: "MONTHLY_SPECIFIC",
-          weekDay,
-          isActive: true,
-        },
-      });
+        });
 
-      for (const existing of existingChambers) {
-        const overlap = existing.weekNumbers.some((week: string) =>
-          weekNumbers.includes(week)
-        );
-        if (overlap) {
+        if (existingChamber) {
           return NextResponse.json(
             {
-              error: `Doctor already has a chamber scheduled for some of these weeks on ${weekDay.toLowerCase()}`,
+              error: `Doctor already has a chamber scheduled on ${weekDay.toLowerCase()}`,
             },
             { status: 400 }
           );
+        }
+      }
+    } else if (scheduleType === "MONTHLY_SPECIFIC") {
+      // Check for overlapping week numbers on the same day
+      for (const weekDay of weekDays) {
+        const existingChambers = await prisma.chamber.findMany({
+          where: {
+            doctorId,
+            scheduleType: "MONTHLY_SPECIFIC",
+            OR: [
+              { weekDays: { has: weekDay } },
+              { weekDay: weekDay }, // Backward compatibility
+            ],
+            isActive: true,
+          },
+        });
+
+        for (const existing of existingChambers) {
+          const overlap = existing.weekNumbers.some((week: string) =>
+            weekNumbers.includes(week)
+          );
+          if (overlap) {
+            return NextResponse.json(
+              {
+                error: `Doctor already has a chamber scheduled for some of these weeks on ${weekDay.toLowerCase()}`,
+              },
+              { status: 400 }
+            );
+          }
         }
       }
     }
@@ -238,9 +268,11 @@ export async function POST(request: NextRequest) {
         doctorId,
         pharmacyId,
         scheduleType,
-        weekDay,
+        weekDays,
         weekNumbers: scheduleType === "MONTHLY_SPECIFIC" ? weekNumbers : [],
-        isRecurring: scheduleType === "WEEKLY_RECURRING",
+        isRecurring:
+          scheduleType === "WEEKLY_RECURRING" ||
+          scheduleType === "MULTI_WEEKLY",
         startTime,
         endTime,
         slotDuration: Number.parseInt(slotDuration),

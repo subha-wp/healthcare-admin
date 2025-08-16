@@ -2,7 +2,7 @@
 
 export interface ChamberSchedule {
   scheduleType: "WEEKLY_RECURRING" | "MONTHLY_SPECIFIC";
-  weekDay: string;
+  weekDays: string[];
   weekNumbers?: string[];
   isRecurring: boolean;
   startTime: string;
@@ -11,13 +11,52 @@ export interface ChamberSchedule {
 }
 
 export function getScheduleDisplay(chamber: any): string {
-  if (!chamber.weekDay) return "Not configured";
+  if (!chamber.weekDays || chamber.weekDays.length === 0) {
+    // Backward compatibility for old weekDay field
+    if (chamber.weekDay) {
+      const dayName =
+        chamber.weekDay.charAt(0) + chamber.weekDay.slice(1).toLowerCase();
 
-  const dayName =
-    chamber.weekDay.charAt(0) + chamber.weekDay.slice(1).toLowerCase();
+      if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
+        return `Every ${dayName}`;
+      } else if (
+        chamber.scheduleType === "MONTHLY_SPECIFIC" &&
+        chamber.weekNumbers?.length > 0
+      ) {
+        const weekMap = {
+          FIRST: "1st",
+          SECOND: "2nd",
+          THIRD: "3rd",
+          FOURTH: "4th",
+          LAST: "Last",
+        };
+        const weekDescriptions = chamber.weekNumbers.map(
+          (w: string) => weekMap[w as keyof typeof weekMap]
+        );
+        return `${weekDescriptions.join(" & ")} ${dayName} of every month`;
+      }
+    }
+    return "Not configured";
+  }
 
-  if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
-    return `Every ${dayName}`;
+  const dayNames = chamber.weekDays.map(
+    (day: string) => day.charAt(0) + day.slice(1).toLowerCase()
+  );
+
+  if (
+    chamber.scheduleType === "WEEKLY_RECURRING" ||
+    chamber.scheduleType === "MULTI_WEEKLY" ||
+    chamber.isRecurring
+  ) {
+    if (dayNames.length === 1) {
+      return `Every ${dayNames[0]}`;
+    } else if (dayNames.length === 2) {
+      return `Every ${dayNames[0]} & ${dayNames[1]}`;
+    } else {
+      return `Every ${dayNames.slice(0, -1).join(", ")} & ${
+        dayNames[dayNames.length - 1]
+      }`;
+    }
   } else if (
     chamber.scheduleType === "MONTHLY_SPECIFIC" &&
     chamber.weekNumbers?.length > 0
@@ -32,7 +71,13 @@ export function getScheduleDisplay(chamber: any): string {
     const weekDescriptions = chamber.weekNumbers.map(
       (w: string) => weekMap[w as keyof typeof weekMap]
     );
-    return `${weekDescriptions.join(" & ")} ${dayName} of every month`;
+    if (dayNames.length === 1) {
+      return `${weekDescriptions.join(" & ")} ${dayNames[0]} of every month`;
+    } else {
+      return `${weekDescriptions.join(" & ")} ${dayNames.join(
+        " & "
+      )} of every month`;
+    }
   } else if (chamber.weekNumber) {
     // Backward compatibility for old format
     const weekMap = {
@@ -42,6 +87,8 @@ export function getScheduleDisplay(chamber: any): string {
       FOURTH: "4th",
       LAST: "Last",
     };
+    const dayName =
+      chamber.weekDay?.charAt(0) + chamber.weekDay?.slice(1).toLowerCase();
     return `${weekMap[chamber.weekNumber as keyof typeof weekMap]} ${dayName}`;
   }
 
@@ -51,6 +98,8 @@ export function getScheduleDisplay(chamber: any): string {
 export function getScheduleTypeDisplay(chamber: any): string {
   if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
     return "Weekly Recurring";
+  } else if (chamber.scheduleType === "MULTI_WEEKLY") {
+    return "Multi-Weekly";
   } else if (chamber.scheduleType === "MONTHLY_SPECIFIC") {
     return "Monthly Specific";
   }
@@ -59,12 +108,17 @@ export function getScheduleTypeDisplay(chamber: any): string {
 
 export function getScheduleFrequency(chamber: any): number {
   if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
-    return 4; // Approximately 4 sessions per month
+    const daysCount = chamber.weekDays?.length || (chamber.weekDay ? 1 : 0);
+    return daysCount * 4; // Approximately 4 sessions per month per day
+  } else if (chamber.scheduleType === "MULTI_WEEKLY") {
+    const daysCount = chamber.weekDays?.length || 0;
+    return daysCount * 4; // Multiple days per week
   } else if (
     chamber.scheduleType === "MONTHLY_SPECIFIC" &&
     chamber.weekNumbers?.length > 0
   ) {
-    return chamber.weekNumbers.length; // Exact number of sessions per month
+    const daysCount = chamber.weekDays?.length || (chamber.weekDay ? 1 : 0);
+    return chamber.weekNumbers.length * daysCount; // Exact number of sessions per month
   } else if (chamber.weekNumber) {
     return 1; // Legacy format - once per month
   }
@@ -84,16 +138,22 @@ export function getNextAppointmentDates(
 ): Date[] {
   const dates: Date[] = [];
   const currentDate = new Date(fromDate);
+  const weekDays =
+    chamber.weekDays || (chamber.weekDay ? [chamber.weekDay] : []);
 
-  if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
+  if (
+    chamber.scheduleType === "WEEKLY_RECURRING" ||
+    chamber.scheduleType === "MULTI_WEEKLY" ||
+    chamber.isRecurring
+  ) {
     // Weekly recurring - find next occurrences of the weekday
-    const targetDay = getWeekDayNumber(chamber.weekDay);
+    const targetDays = weekDays.map((day: string) => getWeekDayNumber(day));
 
     for (let i = 0; i < count * 7; i++) {
       const checkDate = new Date(currentDate);
       checkDate.setDate(currentDate.getDate() + i);
 
-      if (checkDate.getDay() === targetDay && dates.length < count) {
+      if (targetDays.includes(checkDate.getDay()) && dates.length < count) {
         dates.push(new Date(checkDate));
       }
     }
@@ -114,13 +174,11 @@ export function getNextAppointmentDates(
       );
 
       for (const weekNumber of chamber.weekNumbers) {
-        const weekDate = getWeekDateInMonth(
-          checkMonth,
-          weekNumber,
-          chamber.weekDay
-        );
-        if (weekDate >= fromDate && dates.length < count) {
-          dates.push(weekDate);
+        for (const weekDay of weekDays) {
+          const weekDate = getWeekDateInMonth(checkMonth, weekNumber, weekDay);
+          if (weekDate >= fromDate && dates.length < count) {
+            dates.push(weekDate);
+          }
         }
       }
     }
@@ -196,8 +254,8 @@ export function validateChamberSchedule(chamber: ChamberSchedule): string[] {
     errors.push("Schedule type is required");
   }
 
-  if (!chamber.weekDay) {
-    errors.push("Week day is required");
+  if (!chamber.weekDays || chamber.weekDays.length === 0) {
+    errors.push("At least one week day is required");
   }
 
   if (
@@ -207,6 +265,13 @@ export function validateChamberSchedule(chamber: ChamberSchedule): string[] {
     errors.push("Week numbers are required for monthly specific schedule");
   }
 
+  // Validate multiple days don't conflict
+  if (chamber.weekDays && chamber.weekDays.length > 1) {
+    const uniqueDays = new Set(chamber.weekDays);
+    if (uniqueDays.size !== chamber.weekDays.length) {
+      errors.push("Duplicate week days are not allowed");
+    }
+  }
   if (!chamber.startTime || !chamber.endTime) {
     errors.push("Start and end times are required");
   }

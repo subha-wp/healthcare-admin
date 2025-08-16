@@ -581,8 +581,15 @@ export default function ChambersPage() {
                                 <Badge variant="outline" className="text-xs">
                                   {getScheduleTypeDisplay(chamber)}
                                 </Badge>
-                                {chamber.maxSlots} slots ×{" "}
-                                {chamber.slotDuration}min
+                                <span>
+                                  {chamber.maxSlots} slots ×{" "}
+                                  {chamber.slotDuration}min
+                                </span>
+                                {chamber.scheduleType === "MULTI_WEEKLY" && (
+                                  <span className="text-purple-600">
+                                    {chamber.weekDays?.length || 0} days/week
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </TableCell>

@@ -74,7 +74,7 @@ export function CreateChamberModal({
     doctorId: "",
     pharmacyId: "",
     scheduleType: "",
-    weekDay: "",
+    weekDays: [] as string[],
     weekNumbers: [] as string[],
     isRecurring: true,
     startTime: "",
@@ -193,7 +193,8 @@ export function CreateChamberModal({
     if (!formData.pharmacyId) newErrors.pharmacyId = "Please select a pharmacy";
     if (!formData.scheduleType)
       newErrors.scheduleType = "Please select schedule type";
-    if (!formData.weekDay) newErrors.weekDay = "Please select week day";
+    if (!formData.weekDays || formData.weekDays.length === 0)
+      newErrors.weekDays = "Please select at least one week day";
 
     if (
       formData.scheduleType === "MONTHLY_SPECIFIC" &&
@@ -285,12 +286,24 @@ export function CreateChamberModal({
 
   // Reset week numbers when schedule type changes
   useEffect(() => {
-    if (formData.scheduleType === "WEEKLY_RECURRING") {
+    if (
+      formData.scheduleType === "WEEKLY_RECURRING" ||
+      formData.scheduleType === "MULTI_WEEKLY"
+    ) {
       setFormData((prev) => ({ ...prev, weekNumbers: [], isRecurring: true }));
     } else if (formData.scheduleType === "MONTHLY_SPECIFIC") {
       setFormData((prev) => ({ ...prev, isRecurring: false }));
     }
   }, [formData.scheduleType]);
+
+  const handleWeekDayToggle = (weekDay: string, checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      weekDays: checked
+        ? [...prev.weekDays, weekDay]
+        : prev.weekDays.filter((d) => d !== weekDay),
+    }));
+  };
 
   const handleWeekNumberToggle = (weekNumber: string, checked: boolean) => {
     setFormData((prev) => ({
@@ -302,13 +315,30 @@ export function CreateChamberModal({
   };
 
   const getScheduleDescription = () => {
-    if (!formData.scheduleType || !formData.weekDay) return "";
+    if (
+      !formData.scheduleType ||
+      !formData.weekDays ||
+      formData.weekDays.length === 0
+    )
+      return "";
 
-    const dayName =
-      formData.weekDay.charAt(0) + formData.weekDay.slice(1).toLowerCase();
+    const dayNames = formData.weekDays.map(
+      (day: string) => day.charAt(0) + day.slice(1).toLowerCase()
+    );
 
-    if (formData.scheduleType === "WEEKLY_RECURRING") {
-      return `Every ${dayName}`;
+    if (
+      formData.scheduleType === "WEEKLY_RECURRING" ||
+      formData.scheduleType === "MULTI_WEEKLY"
+    ) {
+      if (dayNames.length === 1) {
+        return `Every ${dayNames[0]}`;
+      } else if (dayNames.length === 2) {
+        return `Every ${dayNames[0]} & ${dayNames[1]}`;
+      } else {
+        return `Every ${dayNames.slice(0, -1).join(", ")} & ${
+          dayNames[dayNames.length - 1]
+        }`;
+      }
     } else if (
       formData.scheduleType === "MONTHLY_SPECIFIC" &&
       formData.weekNumbers.length > 0
@@ -323,7 +353,15 @@ export function CreateChamberModal({
       const weekDescriptions = formData.weekNumbers.map(
         (w) => weekMap[w as keyof typeof weekMap]
       );
-      return `${weekDescriptions.join(" and ")} ${dayName} of every month`;
+      if (dayNames.length === 1) {
+        return `${weekDescriptions.join(" and ")} ${
+          dayNames[0]
+        } of every month`;
+      } else {
+        return `${weekDescriptions.join(" and ")} ${dayNames.join(
+          " & "
+        )} of every month`;
+      }
     }
 
     return "";
@@ -362,7 +400,7 @@ export function CreateChamberModal({
       doctorId: "",
       pharmacyId: "",
       scheduleType: "",
-      weekDay: "",
+      weekDays: [],
       weekNumbers: [],
       isRecurring: true,
       startTime: "",
@@ -669,7 +707,18 @@ export function CreateChamberModal({
                         <div>
                           <div className="font-medium">Weekly Recurring</div>
                           <div className="text-xs text-slate-500">
-                            Every Monday, Every Sunday, etc.
+                            Single day: Every Monday, Every Sunday, etc.
+                          </div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="MULTI_WEEKLY">
+                      <div className="flex items-center space-x-2">
+                        <CalendarDays className="h-4 w-4" />
+                        <div>
+                          <div className="font-medium">Multi-Weekly</div>
+                          <div className="text-xs text-slate-500">
+                            Multiple days: Every Sunday & Friday, etc.
                           </div>
                         </div>
                       </div>
@@ -696,31 +745,61 @@ export function CreateChamberModal({
 
               {/* Day Selection */}
               <div>
-                <Label htmlFor="weekDay">Day of Week *</Label>
-                <Select
-                  value={formData.weekDay}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, weekDay: value })
-                  }
-                >
-                  <SelectTrigger
-                    className={errors.weekDay ? "border-red-500" : ""}
-                  >
-                    <SelectValue placeholder="Select day" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MONDAY">Monday</SelectItem>
-                    <SelectItem value="TUESDAY">Tuesday</SelectItem>
-                    <SelectItem value="WEDNESDAY">Wednesday</SelectItem>
-                    <SelectItem value="THURSDAY">Thursday</SelectItem>
-                    <SelectItem value="FRIDAY">Friday</SelectItem>
-                    <SelectItem value="SATURDAY">Saturday</SelectItem>
-                    <SelectItem value="SUNDAY">Sunday</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.weekDay && (
-                  <p className="text-sm text-red-500 mt-1">{errors.weekDay}</p>
+                <Label className="text-sm font-medium mb-3 block">
+                  Days of Week *
+                  {formData.scheduleType === "WEEKLY_RECURRING" && (
+                    <span className="text-xs text-slate-500 ml-2">
+                      (Select one day)
+                    </span>
+                  )}
+                  {formData.scheduleType === "MULTI_WEEKLY" && (
+                    <span className="text-xs text-slate-500 ml-2">
+                      (Select multiple days)
+                    </span>
+                  )}
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: "MONDAY", label: "Monday" },
+                    { value: "TUESDAY", label: "Tuesday" },
+                    { value: "WEDNESDAY", label: "Wednesday" },
+                    { value: "THURSDAY", label: "Thursday" },
+                    { value: "FRIDAY", label: "Friday" },
+                    { value: "SATURDAY", label: "Saturday" },
+                    { value: "SUNDAY", label: "Sunday" },
+                  ].map((day) => (
+                    <div
+                      key={day.value}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
+                        id={day.value}
+                        checked={formData.weekDays.includes(day.value)}
+                        onCheckedChange={(checked) =>
+                          handleWeekDayToggle(day.value, checked as boolean)
+                        }
+                        disabled={
+                          formData.scheduleType === "WEEKLY_RECURRING" &&
+                          formData.weekDays.length >= 1 &&
+                          !formData.weekDays.includes(day.value)
+                        }
+                      />
+                      <Label htmlFor={day.value} className="text-sm">
+                        {day.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {errors.weekDays && (
+                  <p className="text-sm text-red-500 mt-1">{errors.weekDays}</p>
                 )}
+                {formData.scheduleType === "WEEKLY_RECURRING" &&
+                  formData.weekDays.length > 1 && (
+                    <p className="text-sm text-orange-600 mt-1">
+                      Weekly Recurring allows only one day. Use Multi-Weekly for
+                      multiple days.
+                    </p>
+                  )}
               </div>
 
               {/* Week Numbers Selection for Monthly Specific */}
@@ -958,11 +1037,37 @@ export function CreateChamberModal({
                             {(
                               calculateMaxSlots() *
                               Number.parseFloat(formData.fees || "0") *
-                              formData.weekNumbers.length
+                              formData.weekNumbers.length *
+                              formData.weekDays.length
                             ).toLocaleString()}
                           </span>
                           <span className="text-xs text-green-600 ml-1">
-                            ({formData.weekNumbers.length} sessions/month)
+                            (
+                            {formData.weekNumbers.length *
+                              formData.weekDays.length}{" "}
+                            sessions/month)
+                          </span>
+                        </div>
+                      )}
+
+                    {/* Multi-Weekly Revenue Calculation */}
+                    {formData.scheduleType === "MULTI_WEEKLY" &&
+                      formData.weekDays.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-green-300">
+                          <span className="text-green-700">
+                            Weekly Revenue Potential:
+                          </span>
+                          <br />
+                          <span className="font-medium text-lg">
+                            ₹
+                            {(
+                              calculateMaxSlots() *
+                              Number.parseFloat(formData.fees || "0") *
+                              formData.weekDays.length
+                            ).toLocaleString()}
+                          </span>
+                          <span className="text-xs text-green-600 ml-1">
+                            ({formData.weekDays.length} sessions/week)
                           </span>
                         </div>
                       )}
@@ -976,10 +1081,15 @@ export function CreateChamberModal({
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Chambers can now be created with both verified and non-verified
-              doctors/pharmacies. Non-verified partnerships will require admin
-              verification before becoming active. The new search-based
-              selection improves performance by loading data only when needed.
+              Enhanced chamber scheduling now supports:
+              <br />• <strong>Weekly Recurring:</strong> Single day per week
+              (e.g., Every Monday)
+              <br />• <strong>Multi-Weekly:</strong> Multiple days per week
+              (e.g., Every Sunday & Friday)
+              <br />• <strong>Monthly Specific:</strong> Specific weeks and days
+              (e.g., 2nd & 4th Sunday)
+              <br />
+              Both verified and non-verified partners can create chambers.
             </AlertDescription>
           </Alert>
 
@@ -1000,9 +1110,11 @@ export function CreateChamberModal({
                 !formData.doctorId ||
                 !formData.pharmacyId ||
                 !formData.scheduleType ||
-                !formData.weekDay ||
+                !formData.weekDays.length ||
                 (formData.scheduleType === "MONTHLY_SPECIFIC" &&
                   formData.weekNumbers.length === 0) ||
+                (formData.scheduleType === "WEEKLY_RECURRING" &&
+                  formData.weekDays.length > 1) ||
                 calculateMaxSlots() <= 0
               }
             >
