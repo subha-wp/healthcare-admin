@@ -199,12 +199,6 @@ export async function POST(request: NextRequest) {
                 weekDays: { has: weekDay },
                 isActive: true,
               },
-              // Backward compatibility check
-              {
-                scheduleType: "WEEKLY_RECURRING",
-                weekDay: weekDay,
-                isActive: true,
-              },
             ],
           },
         });
@@ -225,10 +219,7 @@ export async function POST(request: NextRequest) {
           where: {
             doctorId,
             scheduleType: "MONTHLY_SPECIFIC",
-            OR: [
-              { weekDays: { has: weekDay } },
-              { weekDay: weekDay }, // Backward compatibility
-            ],
+            weekDays: { has: weekDay },
             isActive: true,
           },
         });

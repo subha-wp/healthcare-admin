@@ -44,7 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 interface CreateChamberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onChamberCreated: (chamber: any) => void;
 }
 
 interface Doctor {
@@ -236,7 +236,7 @@ export function CreateChamberModal({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/admin/chambers", {
+      const response = await fetch("/api/chambers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -422,11 +422,6 @@ export function CreateChamberModal({
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Chamber</DialogTitle>
-          <DialogDescription>
-            Set up a new doctor-pharmacy partnership with flexible scheduling
-            options. Both verified and non-verified doctors/pharmacies can
-            create chambers.
-          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
