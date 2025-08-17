@@ -254,16 +254,6 @@ export default function ChambersPage() {
     });
   };
 
-  const getScheduleDisplay = (chamber: any) => {
-    // Use the utility function from chamber-utils
-    return getScheduleDisplay(chamber);
-  };
-
-  const getScheduleTypeDisplay = (chamber: any) => {
-    // Use the utility function from chamber-utils
-    return getScheduleTypeDisplay(chamber);
-  };
-
   const verifiedChambers = chambers.filter((c) => c.isVerified).length;
   const pendingChambers = chambers.filter((c) => !c.isVerified).length;
   const activeChambers = chambers.filter((c) => c.isActive).length;
