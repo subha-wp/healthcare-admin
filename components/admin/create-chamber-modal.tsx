@@ -236,7 +236,7 @@ export function CreateChamberModal({
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/chambers", {
+      const response = await fetch("/api/admin/chambers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
