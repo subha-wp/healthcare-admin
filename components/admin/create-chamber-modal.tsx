@@ -7,7 +7,6 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -44,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 interface CreateChamberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onChamberCreated: (chamber: any) => void;
+  onSuccess: () => void;
 }
 
 interface Doctor {
@@ -233,10 +232,11 @@ export function CreateChamberModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!validateForm()) return;
 
+    setIsLoading(true);
     try {
-      const response = await fetch("/api/chambers", {
+      const response = await fetch("/api/admin/chambers", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -245,6 +245,8 @@ export function CreateChamberModal({
       });
 
       if (response.ok) {
+        const data = await response.json();
+        console.log(" Chamber created successfully:", data);
         onSuccess();
         handleClose();
         toast({
@@ -252,12 +254,25 @@ export function CreateChamberModal({
           description: "Chamber created successfully!",
         });
       } else {
-        throw new Error("Failed to create chamber");
+        // Parse error message from response
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: "Unknown error" }));
+        console.error("Chamber creation failed:", response.status, errorData);
+
+        toast({
+          title: "Error",
+          description:
+            errorData.error || "Failed to create chamber. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
+      console.error(" Network error during chamber creation:", error);
       toast({
         title: "Error",
-        description: "Failed to create chamber. Please try again.",
+        description:
+          "Network error. Please check your connection and try again.",
         variant: "destructive",
       });
     } finally {

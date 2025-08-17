@@ -56,6 +56,10 @@ import { VerifyChamberModal } from "@/components/admin/verify-chamber-modal";
 import { EditChamberModal } from "@/components/admin/edit-chamber-modal";
 import { useToast } from "@/hooks/use-toast";
 import { useRealTimeData } from "@/hooks/use-real-time-data";
+import {
+  getScheduleDisplay,
+  getScheduleTypeDisplay,
+} from "@/lib/chamber-utils";
 
 interface Chamber {
   id: string;
@@ -251,52 +255,13 @@ export default function ChambersPage() {
   };
 
   const getScheduleDisplay = (chamber: any) => {
-    if (!chamber.weekDay) return "Not configured";
-
-    const dayName =
-      chamber.weekDay.charAt(0) + chamber.weekDay.slice(1).toLowerCase();
-
-    if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
-      return `Every ${dayName}`;
-    } else if (
-      chamber.scheduleType === "MONTHLY_SPECIFIC" &&
-      chamber.weekNumbers?.length > 0
-    ) {
-      const weekMap = {
-        FIRST: "1st",
-        SECOND: "2nd",
-        THIRD: "3rd",
-        FOURTH: "4th",
-        LAST: "Last",
-      };
-      const weekDescriptions = chamber.weekNumbers.map(
-        (w: string) => weekMap[w as keyof typeof weekMap]
-      );
-      return `${weekDescriptions.join(" & ")} ${dayName}`;
-    } else if (chamber.weekNumber) {
-      // Backward compatibility for old format
-      const weekMap = {
-        FIRST: "1st",
-        SECOND: "2nd",
-        THIRD: "3rd",
-        FOURTH: "4th",
-        LAST: "Last",
-      };
-      return `${
-        weekMap[chamber.weekNumber as keyof typeof weekMap]
-      } ${dayName}`;
-    }
-
-    return "Custom schedule";
+    // Use the utility function from chamber-utils
+    return getScheduleDisplay(chamber);
   };
 
   const getScheduleTypeDisplay = (chamber: any) => {
-    if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
-      return "Weekly";
-    } else if (chamber.scheduleType === "MONTHLY_SPECIFIC") {
-      return "Monthly";
-    }
-    return "Legacy";
+    // Use the utility function from chamber-utils
+    return getScheduleTypeDisplay(chamber);
   };
 
   const verifiedChambers = chambers.filter((c) => c.isVerified).length;

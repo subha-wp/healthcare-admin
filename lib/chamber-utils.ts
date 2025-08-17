@@ -11,88 +11,89 @@ export interface ChamberSchedule {
 }
 
 export function getScheduleDisplay(chamber: any): string {
-  if (!chamber.weekDays || chamber.weekDays.length === 0) {
-    // Backward compatibility for old weekDay field
-    if (chamber.weekDay) {
-      const dayName =
-        chamber.weekDay.charAt(0) + chamber.weekDay.slice(1).toLowerCase();
+  // Handle new weekDays array format
+  if (chamber.weekDays && chamber.weekDays.length > 0) {
+    const dayNames = chamber.weekDays.map(
+      (day: string) => day.charAt(0) + day.slice(1).toLowerCase()
+    );
 
-      if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
-        return `Every ${dayName}`;
-      } else if (
-        chamber.scheduleType === "MONTHLY_SPECIFIC" &&
-        chamber.weekNumbers?.length > 0
-      ) {
-        const weekMap = {
-          FIRST: "1st",
-          SECOND: "2nd",
-          THIRD: "3rd",
-          FOURTH: "4th",
-          LAST: "Last",
-        };
-        const weekDescriptions = chamber.weekNumbers.map(
-          (w: string) => weekMap[w as keyof typeof weekMap]
-        );
-        return `${weekDescriptions.join(" & ")} ${dayName} of every month`;
+    if (
+      chamber.scheduleType === "WEEKLY_RECURRING" ||
+      chamber.scheduleType === "MULTI_WEEKLY" ||
+      chamber.isRecurring
+    ) {
+      if (dayNames.length === 1) {
+        return `Every ${dayNames[0]}`;
+      } else if (dayNames.length === 2) {
+        return `Every ${dayNames[0]} & ${dayNames[1]}`;
+      } else {
+        return `Every ${dayNames.slice(0, -1).join(", ")} & ${
+          dayNames[dayNames.length - 1]
+        }`;
+      }
+    } else if (
+      chamber.scheduleType === "MONTHLY_SPECIFIC" &&
+      chamber.weekNumbers?.length > 0
+    ) {
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      const weekDescriptions = chamber.weekNumbers.map(
+        (w: string) => weekMap[w as keyof typeof weekMap]
+      );
+      if (dayNames.length === 1) {
+        return `${weekDescriptions.join(" & ")} ${dayNames[0]} of every month`;
+      } else {
+        return `${weekDescriptions.join(" & ")} ${dayNames.join(
+          " & "
+        )} of every month`;
       }
     }
-    return "Not configured";
   }
 
-  const dayNames = chamber.weekDays.map(
-    (day: string) => day.charAt(0) + day.slice(1).toLowerCase()
-  );
-
-  if (
-    chamber.scheduleType === "WEEKLY_RECURRING" ||
-    chamber.scheduleType === "MULTI_WEEKLY" ||
-    chamber.isRecurring
-  ) {
-    if (dayNames.length === 1) {
-      return `Every ${dayNames[0]}`;
-    } else if (dayNames.length === 2) {
-      return `Every ${dayNames[0]} & ${dayNames[1]}`;
-    } else {
-      return `Every ${dayNames.slice(0, -1).join(", ")} & ${
-        dayNames[dayNames.length - 1]
-      }`;
-    }
-  } else if (
-    chamber.scheduleType === "MONTHLY_SPECIFIC" &&
-    chamber.weekNumbers?.length > 0
-  ) {
-    const weekMap = {
-      FIRST: "1st",
-      SECOND: "2nd",
-      THIRD: "3rd",
-      FOURTH: "4th",
-      LAST: "Last",
-    };
-    const weekDescriptions = chamber.weekNumbers.map(
-      (w: string) => weekMap[w as keyof typeof weekMap]
-    );
-    if (dayNames.length === 1) {
-      return `${weekDescriptions.join(" & ")} ${dayNames[0]} of every month`;
-    } else {
-      return `${weekDescriptions.join(" & ")} ${dayNames.join(
-        " & "
-      )} of every month`;
-    }
-  } else if (chamber.weekNumber) {
-    // Backward compatibility for old format
-    const weekMap = {
-      FIRST: "1st",
-      SECOND: "2nd",
-      THIRD: "3rd",
-      FOURTH: "4th",
-      LAST: "Last",
-    };
+  // Backward compatibility for old weekDay field
+  if (chamber.weekDay) {
+    // Backward compatibility for old weekDay field
     const dayName =
-      chamber.weekDay?.charAt(0) + chamber.weekDay?.slice(1).toLowerCase();
-    return `${weekMap[chamber.weekNumber as keyof typeof weekMap]} ${dayName}`;
+      chamber.weekDay.charAt(0) + chamber.weekDay.slice(1).toLowerCase();
+
+    if (chamber.scheduleType === "WEEKLY_RECURRING" || chamber.isRecurring) {
+      return `Every ${dayName}`;
+    } else if (
+      chamber.scheduleType === "MONTHLY_SPECIFIC" &&
+      chamber.weekNumbers?.length > 0
+    ) {
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      const weekDescriptions = chamber.weekNumbers.map(
+        (w: string) => weekMap[w as keyof typeof weekMap]
+      );
+      return `${weekDescriptions.join(" & ")} ${dayName} of every month`;
+    } else if (chamber.weekNumber) {
+      // Handle old weekNumber format
+      const weekMap = {
+        FIRST: "1st",
+        SECOND: "2nd",
+        THIRD: "3rd",
+        FOURTH: "4th",
+        LAST: "Last",
+      };
+      return `${
+        weekMap[chamber.weekNumber as keyof typeof weekMap]
+      } ${dayName}`;
+    }
   }
 
-  return "Custom schedule";
+  return "Not configured";
 }
 
 export function getScheduleTypeDisplay(chamber: any): string {
