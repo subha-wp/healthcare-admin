@@ -4,7 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BookMyChamber - Admin Control",
+  title: "BookMyChamber - Admin Control Panel",
   description: "Developed by Subha",
 };
 
