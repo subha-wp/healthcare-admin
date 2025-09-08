@@ -92,6 +92,100 @@ export async function PUT(
       isActive,
     } = body;
 
+    // Helper function to check time conflicts
+    function checkTimeConflict(
+      newStart: string,
+      newEnd: string,
+      existingStart: string,
+      existingEnd: string
+    ): boolean {
+      const newStartTime = new Date(`2000-01-01T${newStart}:00`);
+      const newEndTime = new Date(`2000-01-01T${newEnd}:00`);
+      const existingStartTime = new Date(`2000-01-01T${existingStart}:00`);
+      const existingEndTime = new Date(`2000-01-01T${existingEnd}:00`);
+
+      // Check if times overlap
+      return (
+        (newStartTime < existingEndTime && newEndTime > existingStartTime) ||
+        (existingStartTime < newEndTime && existingEndTime > newStartTime)
+      );
+    }
+
+    // If updating time, check for conflicts with other chambers
+    if (startTime && endTime) {
+      const currentChamber = await prisma.chamber.findUnique({
+        where: { id },
+        include: { doctor: true },
+      });
+
+      if (!currentChamber) {
+        return NextResponse.json(
+          { error: "Chamber not found" },
+          { status: 404 }
+        );
+      }
+
+      // Check for time conflicts with other chambers of the same doctor
+      const conflictingChambers = await prisma.chamber.findMany({
+        where: {
+          doctorId: currentChamber.doctorId,
+          id: { not: id }, // Exclude current chamber
+          isActive: true,
+          OR: [
+            {
+              scheduleType: { in: ["WEEKLY_RECURRING", "MULTI_WEEKLY"] },
+              weekDays: { hasSome: weekDays || currentChamber.weekDays },
+            },
+            {
+              scheduleType: "MONTHLY_SPECIFIC",
+              weekDays: { hasSome: weekDays || currentChamber.weekDays },
+              weekNumbers: { hasSome: weekNumbers || currentChamber.weekNumbers },
+            },
+          ],
+        },
+      });
+
+      for (const conflicting of conflictingChambers) {
+        const hasTimeConflict = checkTimeConflict(
+          startTime,
+          endTime,
+          conflicting.startTime,
+          conflicting.endTime
+        );
+
+        if (hasTimeConflict) {
+          return NextResponse.json(
+            {
+              error: `Time conflict with existing chamber from ${conflicting.startTime} to ${conflicting.endTime}. Please choose a different time.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Validate that start time is before end time
+      const startTimeDate = new Date(`2000-01-01T${startTime}:00`);
+      const endTimeDate = new Date(`2000-01-01T${endTime}:00`);
+      
+      if (endTimeDate <= startTimeDate) {
+        return NextResponse.json(
+          { error: "End time must be after start time" },
+          { status: 400 }
+        );
+      }
+
+      // Validate minimum session duration (at least 30 minutes)
+      const sessionDurationMs = endTimeDate.getTime() - startTimeDate.getTime();
+      const sessionDurationMinutes = sessionDurationMs / (1000 * 60);
+      
+      if (sessionDurationMinutes < 30) {
+        return NextResponse.json(
+          { error: "Chamber session must be at least 30 minutes long" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Calculate max slots if time or duration changed
     let maxSlots;
     if (startTime && endTime && slotDuration) {

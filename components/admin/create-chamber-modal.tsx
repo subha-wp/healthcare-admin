@@ -247,7 +247,7 @@ export function CreateChamberModal({
       if (response.ok) {
         const data = await response.json();
         console.log(" Chamber created successfully:", data);
-        onChamberCreated(data.chamber);
+        onSuccess();
         handleClose();
         toast({
           title: "Success",
@@ -668,6 +668,14 @@ export function CreateChamberModal({
                         </AlertDescription>
                       </Alert>
                     )}
+
+                    {/* Time Conflict Warning */}
+                    <Alert className="mt-4">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        Multiple chambers can be created for the same doctor on the same day as long as the time slots don't overlap. The system will check for time conflicts automatically.
+                        </AlertDescription>
+                      </Alert>
                   </CardContent>
                 </Card>
               )}
@@ -898,6 +906,9 @@ export function CreateChamberModal({
                       {errors.startTime}
                     </p>
                   )}
+                  <p className="text-xs text-slate-500 mt-1">
+                    Multiple chambers can be created for the same day with different times
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="endTime">End Time *</Label>
@@ -916,6 +927,9 @@ export function CreateChamberModal({
                       {errors.endTime}
                     </p>
                   )}
+                  <p className="text-xs text-slate-500 mt-1">
+                    Minimum 30 minutes session duration required
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -1099,7 +1113,7 @@ export function CreateChamberModal({
               <br />• <strong>Monthly Specific:</strong> Specific weeks and days
               (e.g., 2nd & 4th Sunday)
               <br />
-              Both verified and non-verified partners can create chambers.
+              Both verified and non-verified partners can create chambers. Multiple chambers can be created for the same day with different time slots.
             </AlertDescription>
           </Alert>
 
@@ -1143,7 +1157,3 @@ export function CreateChamberModal({
     </Dialog>
   );
 }
-function onChamberCreated(chamber: any) {
-  throw new Error("Function not implemented.");
-}
-

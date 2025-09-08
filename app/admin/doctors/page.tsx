@@ -457,12 +457,15 @@ export default function DoctorsPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setEditingDoctor(doctor)}
                                 onClick={() => setSelectedDoctor(doctor)}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => setEditingDoctor(doctor)}
+                              >
                                 <Edit className="h-4 w-4" />
                               </Button>
                               <Button

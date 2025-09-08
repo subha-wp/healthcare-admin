@@ -642,7 +642,7 @@ export function EditChamberModal({
               <AlertDescription>
                 This chamber is verified and may have existing appointments.
                 Changes to schedule or pricing may affect future bookings.
-                Consider notifying patients of any changes.
+                Consider notifying patients of any changes. Time changes will be validated to prevent conflicts with other chambers.
               </AlertDescription>
             </Alert>
           )}

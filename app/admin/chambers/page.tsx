@@ -545,6 +545,11 @@ export default function ChambersPage() {
                                     {chamber.weekDays?.length || 0} days/week
                                   </span>
                                 )}
+                                {chamber.doctor && (
+                                  <span className="text-blue-600 text-xs">
+                                    Dr. {chamber.doctor.name.split(' ')[0]}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </TableCell>
@@ -863,6 +868,9 @@ export default function ChambersPage() {
                   <h3 className="font-semibold text-lg mb-4 flex items-center space-x-2">
                     <Repeat className="h-5 w-5 text-blue-600" />
                     <span>Weekly Recurring Chambers</span>
+                    <Badge variant="outline" className="text-xs">
+                      Multiple time slots supported
+                    </Badge>
                   </h3>
                   <div className="grid grid-cols-7 gap-4">
                     {[
@@ -882,12 +890,14 @@ export default function ChambersPage() {
                           {chambers
                             .filter(
                               (c) =>
-                                c.weekDay === day &&
+                                (c.weekDay === day || (c.weekDays && c.weekDays.includes(day))) &&
                                 c.isActive &&
                                 c.isVerified &&
                                 (c.scheduleType === "WEEKLY_RECURRING" ||
+                                  c.scheduleType === "MULTI_WEEKLY" ||
                                   c.isRecurring)
                             )
+                            .sort((a, b) => a.startTime.localeCompare(b.startTime))
                             .map((chamber) => (
                               <Card
                                 key={chamber.id}
@@ -910,7 +920,7 @@ export default function ChambersPage() {
                                   variant="outline"
                                   className="text-xs mt-1"
                                 >
-                                  Weekly
+                                  {chamber.scheduleType === "MULTI_WEEKLY" ? "Multi" : "Weekly"}
                                 </Badge>
                               </Card>
                             ))}
