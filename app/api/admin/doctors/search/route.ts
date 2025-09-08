@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
           { name: { contains: query, mode: "insensitive" } },
           { specialization: { contains: query, mode: "insensitive" } },
           { qualification: { contains: query, mode: "insensitive" } },
+          { licenseNo: { contains: query, mode: "insensitive" } },
           { user: { email: { contains: query, mode: "insensitive" } } },
         ],
       },

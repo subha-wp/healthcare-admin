@@ -247,7 +247,7 @@ export function CreateChamberModal({
       if (response.ok) {
         const data = await response.json();
         console.log(" Chamber created successfully:", data);
-        onSuccess();
+        onChamberCreated(data.chamber);
         handleClose();
         toast({
           title: "Success",
@@ -1143,3 +1143,7 @@ export function CreateChamberModal({
     </Dialog>
   );
 }
+function onChamberCreated(chamber: any) {
+  throw new Error("Function not implemented.");
+}
+
