@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
         { name: { contains: search, mode: "insensitive" } },
         { specialization: { contains: search, mode: "insensitive" } },
         { qualification: { contains: search, mode: "insensitive" } },
-        { licenseNo: { contains: search, mode: "insensitive" } },  // Fixed: licenseNo instead of licenseNumber
-        { user: { email: { contains: search, mode: "insensitive" } } },  // Added: Search by email
+        { licenseNo: { contains: search, mode: "insensitive" } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
       ];
     }
     if (specialization && specialization !== "all") {
@@ -37,7 +37,8 @@ export async function GET(request: NextRequest) {
       where.isVerified = verified === "true";
     }
 
-    const [doctors, total] = await Promise.all([
+    // Fetch paginated doctors, total count, verified count, pending count, and specializations
+    const [doctors, total, verifiedCount, pendingCount, specializations] = await Promise.all([
       prisma.doctor.findMany({
         where,
         include: {
@@ -53,6 +54,13 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
       }),
       prisma.doctor.count({ where }),
+      prisma.doctor.count({ where: { ...where, isVerified: true } }),
+      prisma.doctor.count({ where: { ...where, isVerified: false } }),
+      prisma.doctor.findMany({
+        where,
+        distinct: ["specialization"],
+        select: { specialization: true },
+      }),
     ]);
 
     return NextResponse.json({
@@ -62,6 +70,11 @@ export async function GET(request: NextRequest) {
         limit,
         total,
         pages: Math.ceil(total / limit),
+      },
+      stats: {
+        verifiedDoctors: verifiedCount,
+        pendingDoctors: pendingCount,
+        specializations: specializations.map((s) => s.specialization).filter(Boolean),
       },
     });
   } catch (error) {
@@ -73,6 +86,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// POST handler remains unchanged
 export async function POST(request: NextRequest) {
   try {
     const user = await verifyToken(request);
@@ -133,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     if (existingDoctor) {
       return NextResponse.json(
-        { error: "License number already exists" },
+        { error: "License number Bowie number already exists" },
         { status: 400 }
       );
     }
@@ -141,7 +155,7 @@ export async function POST(request: NextRequest) {
     // Generate password in the same format as modal
     const generatePassword = () => {
       const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-      const aadhaarClean = aadhaarNo.replace(/\s/g, "");  // Already without spaces, but ensure
+      const aadhaarClean = aadhaarNo.replace(/\s/g, "");
       const last6Digits = aadhaarClean.slice(-6);
       return `${capitalizedFirstName}${last6Digits}@`;
     };
@@ -163,7 +177,7 @@ export async function POST(request: NextRequest) {
             qualification,
             address,
             experience,
-            licenseNo: licenseNumber,  // Consistent naming
+            licenseNo: licenseNumber,
             aadhaarNo,
             consultationFee: consultationFee,
             about: about || "",

@@ -1,3 +1,4 @@
+// app/admin/doctors/page.tsx
 // @ts-nocheck
 "use client";
 
@@ -86,6 +87,12 @@ export default function DoctorsPage() {
     total: 0,
     pages: 0,
   });
+  // Add state for stats
+  const [stats, setStats] = useState({
+    verifiedDoctors: 0,
+    pendingDoctors: 0,
+    specializations: [] as string[],
+  });
   const { toast } = useToast();
 
   const fetchDoctors = async (
@@ -112,6 +119,7 @@ export default function DoctorsPage() {
       const data = await response.json();
       setDoctors(data.doctors);
       setPagination(data.pagination);
+      setStats(data.stats); // Set stats from API response
     } catch (error) {
       console.error("Error fetching doctors:", error);
       toast({
@@ -179,7 +187,6 @@ export default function DoctorsPage() {
   };
 
   const handleEditDoctor = (updatedDoctor: any) => {
-    // Refresh the doctors list after update
     fetchDoctors(
       pagination.page,
       searchTerm,
@@ -234,10 +241,6 @@ export default function DoctorsPage() {
     }
   };
 
-  const specializations = [...new Set(doctors.map((d) => d.specialization))];
-  const verifiedDoctors = doctors.filter((d) => d.isVerified).length;
-  const pendingDoctors = doctors.filter((d) => !d.isVerified).length;
-
   const getDoctorName = (doctor: Doctor) => `Dr. ${doctor.name}`;
 
   const filteredDoctors = doctors.filter((doctor) => {
@@ -247,7 +250,6 @@ export default function DoctorsPage() {
   });
 
   const handleCreateDoctor = (newDoctor: any) => {
-    // Refresh the doctors list after creation
     fetchDoctors(
       pagination.page,
       searchTerm,
@@ -305,7 +307,7 @@ export default function DoctorsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {verifiedDoctors}
+              {stats.verifiedDoctors} {/* Use API-provided stat */}
             </div>
           </CardContent>
         </Card>
@@ -317,7 +319,7 @@ export default function DoctorsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              {pendingDoctors}
+              {stats.pendingDoctors} {/* Use API-provided stat */}
             </div>
           </CardContent>
         </Card>
@@ -329,7 +331,7 @@ export default function DoctorsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {specializations.length}
+              {stats.specializations.length} {/* Use API-provided stat */}
             </div>
           </CardContent>
         </Card>
@@ -367,12 +369,12 @@ export default function DoctorsPage() {
                   value={specializationFilter}
                   onValueChange={setSpecializationFilter}
                 >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filter by specialization" />
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Specialization" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Specializations</SelectItem>
-                    {specializations.map((spec) => (
+                    {stats.specializations.map((spec) => ( // Use API-provided specializations
                       <SelectItem key={spec} value={spec}>
                         {spec}
                       </SelectItem>
@@ -383,118 +385,103 @@ export default function DoctorsPage() {
                   value={verificationFilter}
                   onValueChange={setVerificationFilter}
                 >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Filter by verification" />
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Verification Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="verified">Verified</SelectItem>
                     <SelectItem value="pending">Pending</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Doctors Table */}
-              <div className="border rounded-lg">
-                {loading ? (
-                  <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                    <span className="ml-2">Loading doctors...</span>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Doctor</TableHead>
-                        <TableHead>Specialization</TableHead>
-                        <TableHead>Experience</TableHead>
-                        <TableHead>License No.</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Fee</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredDoctors.map((doctor) => (
-                        <TableRow key={doctor.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">
-                                {getDoctorName(doctor)}
+              {/* Table */}
+              {loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Specialization</TableHead>
+                      <TableHead>License No</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Fee</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDoctors.map((doctor) => (
+                      <TableRow key={doctor.id}>
+                        <TableCell className="font-medium">
+                          {getDoctorName(doctor)}
+                        </TableCell>
+                        <TableCell>{doctor.user.email}</TableCell>
+                        <TableCell>{doctor.specialization}</TableCell>
+                        <TableCell>{doctor.licenseNo}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={doctor.isVerified ? "default" : "secondary"}
+                          >
+                            {doctor.isVerified ? (
+                              <div className="flex items-center space-x-1">
+                                <CheckCircle className="h-3 w-3" />
+                                <span>Verified</span>
                               </div>
-                              <div className="text-sm text-slate-500">
-                                {doctor.user.email}
+                            ) : (
+                              <div className="flex items-center space-x-1">
+                                <Clock className="h-3 w-3" />
+                                <span>Pending</span>
                               </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{doctor.specialization}</TableCell>
-                          <TableCell>{doctor.experience} years</TableCell>
-                          <TableCell className=" text-sm">
-                            {doctor.licenseNo}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                doctor.isVerified ? "default" : "secondary"
-                              }
+                            )}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>₹{doctor.consultationFee}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedDoctor(doctor)}
                             >
-                              {doctor.isVerified ? (
-                                <div className="flex items-center space-x-1">
-                                  <CheckCircle className="h-3 w-3" />
-                                  <span>Verified</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center space-x-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>Pending</span>
-                                </div>
-                              )}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>₹{doctor.consultationFee}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingDoctor(doctor)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDeleteDoctor(doctor.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            {!doctor.isVerified && (
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setSelectedDoctor(doctor)}
+                                className="text-green-600 hover:text-green-700"
+                                onClick={() => setVerifyingDoctor(doctor)}
                               >
-                                <Eye className="h-4 w-4" />
+                                <UserCheck className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => setEditingDoctor(doctor)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-red-600 hover:text-red-700"
-                                onClick={() => handleDeleteDoctor(doctor.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                              {!doctor.isVerified && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-green-600 hover:text-green-700"
-                                  onClick={() => setVerifyingDoctor(doctor)}
-                                >
-                                  <UserCheck className="h-4 w-4" />
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
-
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
               {pagination.pages > 1 && (
                 <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-slate-600">
@@ -584,7 +571,7 @@ export default function DoctorsPage() {
                         </p>
                         <div className="flex items-center justify-between text-sm text-slate-500">
                           <span>{doctor.chambers.length} chambers</span>
-                          <span>License: {doctor.licenseNumber}</span>
+                          <span>License: {doctor.licenseNo}</span> {/* Fixed: licenseNo */}
                         </div>
                       </CardContent>
                     </Card>
@@ -624,7 +611,7 @@ export default function DoctorsPage() {
                               {doctor.specialization}
                             </p>
                             <p className="text-slate-500 text-sm">
-                              License: {doctor.licenseNumber}
+                              License: {doctor.licenseNo} {/* Fixed: licenseNo */}
                             </p>
                             <p className="text-slate-500 text-sm">
                               Submitted:{" "}
