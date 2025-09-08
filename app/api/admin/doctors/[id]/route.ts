@@ -1,3 +1,4 @@
+// app\api\admin\doctors\[id]\route.ts
 // @ts-nocheck
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";

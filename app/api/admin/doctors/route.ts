@@ -1,3 +1,4 @@
+// app/api/admin/doctors/route.ts
 // @ts-nocheck
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -22,10 +23,11 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     if (search) {
       where.OR = [
-        { firstName: { contains: search, mode: "insensitive" } },
-        { lastName: { contains: search, mode: "insensitive" } },
+        { name: { contains: search, mode: "insensitive" } },
         { specialization: { contains: search, mode: "insensitive" } },
-        { licenseNumber: { contains: search, mode: "insensitive" } },
+        { qualification: { contains: search, mode: "insensitive" } },
+        { licenseNo: { contains: search, mode: "insensitive" } },  // Fixed: licenseNo instead of licenseNumber
+        { user: { email: { contains: search, mode: "insensitive" } } },  // Added: Search by email
       ];
     }
     if (specialization && specialization !== "all") {
@@ -136,8 +138,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate random password
-    const password = Math.random().toString(36).slice(-8);
+    // Generate password in the same format as modal
+    const generatePassword = () => {
+      const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+      const aadhaarClean = aadhaarNo.replace(/\s/g, "");  // Already without spaces, but ensure
+      const last6Digits = aadhaarClean.slice(-6);
+      return `${capitalizedFirstName}${last6Digits}@`;
+    };
+    const password = generatePassword();
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // Create user and doctor profile
@@ -155,7 +163,7 @@ export async function POST(request: NextRequest) {
             qualification,
             address,
             experience,
-            licenseNo: licenseNumber,
+            licenseNo: licenseNumber,  // Consistent naming
             aadhaarNo,
             consultationFee: consultationFee,
             about: about || "",
