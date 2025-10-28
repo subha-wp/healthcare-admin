@@ -65,8 +65,12 @@ interface Chamber {
   id: string;
   doctorId: string;
   pharmacyId: string;
-  weekNumber: string;
-  weekDay: string;
+  scheduleType?: string;
+  weekDays?: string[];
+  weekDay?: string; // Legacy field for backwards compatibility
+  weekNumbers?: string[];
+  weekNumber?: string; // Legacy field for backwards compatibility
+  isRecurring?: boolean;
   startTime: string;
   endTime: string;
   fees: number;
